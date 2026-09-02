@@ -1,0 +1,2115 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Trainingsbuch",
+  "schemaVersion": 1,
+  "description": "Tennis- und Konditionstraining vorher strukturieren: angepinnte Notizen, datierte Einheiten mit abhakbaren Punkten, Vorlagen, Übungskatalog und Sprachmemos nach dem Training. Daten lokal im Browser, Backup als Datei.",
+  "mcpTools": [],
+  "mcpServerNames": []
+}
+</script>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trainingsbuch">
+<title>Trainingsbuch</title>
+<link rel="apple-touch-icon" href="icon-trainingsbuch.png">
+<link rel="icon" type="image/png" href="icon-trainingsbuch.png">
+<style>
+:root{
+  --bg:#0f1115; --bg2:#14171d; --panel:#171a20; --panel2:#1d212a; --panel3:#232833;
+  --line:#262b33; --line2:#333a45;
+  --text:#e8eaed; --dim:#98a1af; --faint:#5b6472;
+  --tennis:#38b36b; --tennis-dim:rgba(56,179,107,.14);
+  --kondi:#f0883e; --kondi-dim:rgba(240,136,62,.14);
+  --accent:#4a9eff; --accent-dim:rgba(74,158,255,.14);
+  --danger:#e5484d;
+  --court:#356b45; --courtline:#eaf2ec;
+  --r:12px; --r-lg:18px;
+  --f:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',sans-serif;
+  --shadow:0 6px 24px rgba(0,0,0,.4);
+}
+[data-theme=light]{
+  --bg:#f4f5f7; --bg2:#eceef1; --panel:#ffffff; --panel2:#f7f8fa; --panel3:#eef0f3;
+  --line:#e2e5ea; --line2:#d2d7de;
+  --text:#1a1d23; --dim:#5c6472; --faint:#8b93a1;
+  --tennis:#1f9d57; --kondi:#d9741f; --accent:#2f7fe0;
+  --court:#3f8a55;
+  --shadow:0 6px 20px rgba(20,25,40,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:var(--f)}
+body{padding-bottom:120px;line-height:1.45;overscroll-behavior-y:none}
+button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,textarea,select{font-family:inherit;font-size:16px;color:var(--text)}
+textarea{resize:none;overflow:hidden}
+::placeholder{color:var(--faint)}
+.hidden{display:none!important}
+
+/* ---------- Topbar ---------- */
+#topbar{
+  position:sticky;top:0;z-index:30;background:var(--bg);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.brand{font-weight:700;font-size:17px;letter-spacing:.2px;white-space:nowrap}
+.brand .b-ico{margin-right:6px}
+#menuBtn{font-size:22px;width:40px;height:40px;border-radius:10px;line-height:1}
+#menuBtn:active{background:var(--panel2)}
+#syncDot{margin-left:auto;width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none;cursor:pointer}
+#syncDot[data-s=idle]{background:var(--dim)}
+#syncDot[data-s=ok]{background:var(--tennis)}
+#syncDot[data-s=busy]{background:#e5b53a;animation:pulse 1s infinite}
+#syncDot[data-s=err]{background:var(--danger)}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex:1 1 auto;min-width:200px}
+.seg button{flex:1;padding:7px 4px;border-radius:999px;font-size:13px;font-weight:600;color:var(--dim);white-space:nowrap}
+.seg button.on{color:#fff;background:var(--accent)}
+.seg button.on[data-a=tennis]{background:var(--tennis)}
+.seg button.on[data-a=kondition]{background:var(--kondi)}
+[data-theme=light] .seg button.on{color:#fff}
+
+/* ---------- Search + compose ---------- */
+#searchWrap{position:relative;padding:10px 14px 0}
+#search{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 34px 10px 12px}
+#searchClear{position:absolute;right:22px;top:16px;color:var(--faint);font-size:16px;padding:6px}
+#compose{display:flex;gap:8px;padding:10px 14px 4px;align-items:center}
+#composeInput{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+#composeMic,#composeAdd{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:0 12px;height:42px;font-size:14px;font-weight:600;white-space:nowrap}
+#composeMic{font-size:18px;padding:0 12px}
+#composeAdd{color:var(--accent);border-color:var(--accent)}
+#composeAdd:active,#composeMic:active{background:var(--panel2)}
+
+/* ---------- Board ---------- */
+#board{padding:12px 14px 40px;max-width:1100px;margin:0 auto}
+.sec-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);margin:18px 4px 8px}
+.sec-label:first-child{margin-top:4px}
+
+.groupbar{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;margin:0 -2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.groupbar::-webkit-scrollbar{display:none}
+.gchip{flex:none;font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--dim);white-space:nowrap}
+.gchip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.gchip.ghost{color:var(--faint);border-style:dashed}
+.gchip[data-a=tennis]:not(.on){border-left:3px solid var(--tennis)}
+.gchip[data-a=kondition]:not(.on){border-left:3px solid var(--kondi)}
+.gbadge{background:var(--kondi);color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:1px 5px;margin-left:5px;vertical-align:middle}
+.gchip.on .gbadge{background:var(--bg);color:var(--text)}
+.tagrow{margin-top:-2px}
+
+/* Pins */
+.pins{display:grid;grid-template-columns:1fr;gap:10px}
+.pin{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px}
+.pin-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pin-head .pin-ico{opacity:.7}
+.pin-title{flex:1;font-weight:700;background:none;border:0;padding:2px 0}
+.pin-title:focus{outline:none;border-bottom:1px solid var(--line2)}
+.pin-body{width:100%;background:none;border:0;min-height:44px;line-height:1.5;font-size:15px}
+.pin-body:focus{outline:none}
+.pin .del{color:var(--faint);font-size:15px;padding:4px 6px}
+.addpin{width:100%;border:1px dashed var(--line2);background:none;border-radius:var(--r-lg);padding:12px;color:var(--dim);font-size:14px;font-weight:600}
+.addpin:active{background:var(--panel2)}
+
+/* Session cards */
+.cards{display:grid;grid-template-columns:1fr;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;border-left:3px solid var(--line2)}
+.card[data-a=tennis]{border-left-color:var(--tennis)}
+.card[data-a=kondition]{border-left-color:var(--kondi)}
+.card-head{padding:12px 14px;display:flex;flex-direction:column;gap:4px;cursor:pointer}
+.card-head .row1{display:flex;align-items:center;gap:8px}
+.chip{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:3px 7px;border-radius:999px}
+.chip.tennis{background:var(--tennis-dim);color:var(--tennis)}
+.chip.kondition{background:var(--kondi-dim);color:var(--kondi)}
+.chip.done{background:var(--panel3);color:var(--dim)}
+.chip.grp{background:var(--panel3);color:var(--text)}
+.card-date{font-weight:700;font-size:15px}
+.card-title{color:var(--dim);font-size:14px}
+.card-meta{display:flex;gap:12px;font-size:12px;color:var(--faint);flex-wrap:wrap}
+.card-meta .pg{color:var(--dim)}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
+.card-tags span{font-size:10.5px;color:var(--faint);background:var(--panel3);padding:2px 7px;border-radius:999px}
+.card-body{padding:0 14px 14px;border-top:1px solid var(--line);display:none}
+.card.open .card-body{display:block}
+.card.open .card-head{border-bottom:0}
+
+.fld-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.fld{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.fld label{display:block;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+.fld input,.fld select{width:100%;background:none;border:0;padding:2px 0;font-size:14px}
+.fld input:focus,.fld select:focus{outline:none}
+.title-in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:12px 0 0;font-weight:600}
+
+.grp{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);margin:12px 2px 6px}
+.item{display:flex;align-items:flex-start;gap:8px;padding:3px 0}
+.item .cb{width:20px;height:20px;margin-top:2px;flex:none;border:1.5px solid var(--line2);border-radius:6px;display:grid;place-items:center;font-size:12px;color:transparent}
+.item.done .cb{background:var(--tennis);border-color:var(--tennis);color:#fff}
+.card[data-a=kondition] .item.done .cb{background:var(--kondi);border-color:var(--kondi)}
+.item .it-text{flex:1;background:none;border:0;padding:2px 0;line-height:1.5;font-size:15px}
+.item .it-text:focus{outline:none}
+.item .it-min{width:44px;flex:none;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 4px;font-size:12px;text-align:center;color:var(--dim)}
+.item .it-min:focus{outline:none;border-color:var(--line2)}
+.item.done .it-text{color:var(--faint);text-decoration:line-through}
+.item .mv{color:var(--faint);font-size:13px;padding:2px 4px;opacity:.6}
+.item .x{color:var(--faint);font-size:14px;padding:2px 6px}
+
+.act-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.act-row button{border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--dim)}
+.act-row button:active{background:var(--panel3)}
+
+.blk-label{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);margin:14px 2px 6px}
+.note-in,.refl-in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;min-height:46px;font-size:15px;line-height:1.5}
+.refl-in{background:var(--accent-dim);border-color:transparent}
+.note-in:focus,.refl-in:focus{outline:none;border-color:var(--line2)}
+
+/* memos */
+.memos{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.memo{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.memo audio{width:100%;height:36px}
+.memo .m-row{display:flex;align-items:center;gap:8px}
+.memo .m-label{flex:1;background:none;border:0;font-size:13px;color:var(--dim)}
+.memo .m-label:focus{outline:none;color:var(--text)}
+.memo .m-time{font-size:11px;color:var(--faint);white-space:nowrap}
+.memo .m-del{color:var(--faint);font-size:13px;padding:2px 6px}
+.recbtn{border:1px solid var(--danger);color:var(--danger);background:none;border-radius:9px;padding:9px 12px;font-size:13px;font-weight:700;margin-top:8px}
+.recbtn:active{background:rgba(229,72,77,.12)}
+
+.card-del{display:block;width:100%;margin-top:16px;color:var(--faint);font-size:12.5px;padding:8px;border-top:1px solid var(--line)}
+
+/* timeline */
+.tl-month{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--faint);margin:16px 4px 6px}
+.tl-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer}
+.tl-row .tl-d{font-weight:700;font-size:13px;width:52px;flex:none}
+.tl-row .tl-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.tl-row .tl-dot.tennis{background:var(--tennis)} .tl-row .tl-dot.kondition{background:var(--kondi)}
+.tl-row .tl-t{flex:1;font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-row .tl-pg{font-size:12px;color:var(--faint);flex:none}
+
+/* transkript */
+.memo .m-trans{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;line-height:1.5;color:var(--dim);min-height:34px}
+.memo .m-trans:focus{outline:none;border-color:var(--line2);color:var(--text)}
+.memo .m-tlabel{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+
+/* anwesenheit */
+.att-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.att{font-size:13px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--dim)}
+.att.on{background:var(--tennis);color:#fff;border-color:var(--tennis)}
+.card[data-a=kondition] .att.on{background:var(--kondi);border-color:var(--kondi)}
+.att-add{font-size:13px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px dashed var(--line2);color:var(--faint)}
+.att-count{font-size:12px;color:var(--faint);margin-left:4px}
+
+/* zielzonen-skizze */
+.court{width:100%;aspect-ratio:260/120;height:auto;display:block;border-radius:10px;background:#10301d;touch-action:none}
+.court-thumb{width:150px;aspect-ratio:260/120;height:auto;border-radius:8px;margin:6px 0 2px;background:#10301d;display:block;cursor:pointer}
+.court-wrap{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}
+.court-tools{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.court-tools button{font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--dim)}
+.court-tools button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.court-hint{font-size:11px;color:var(--faint);margin-top:7px}
+.item .it-court{color:var(--faint);font-size:13px;padding:2px 4px}
+.item .it-court.has{color:var(--accent)}
+
+/* wochenplan */
+.wk-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+.wk-when{flex:none;width:76px;text-align:center}
+.wk-when b{display:block;font-size:14px}
+.wk-when span{font-size:11px;color:var(--faint)}
+.wk-body{flex:1;min-width:0}
+.wk-body .wk-name{font-weight:700;font-size:14px}
+.wk-body .wk-meta{font-size:12px;color:var(--faint);margin-top:2px}
+.wk-act{display:flex;flex-direction:column;gap:4px;flex:none}
+.wk-act button{font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);white-space:nowrap}
+.wk-act button.prim{color:var(--accent);border-color:var(--accent)}
+.wk-due{color:var(--kondi)!important;font-weight:700}
+.viewseg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;margin-bottom:10px}
+.viewseg button{flex:1;padding:8px 4px;border-radius:8px;font-size:13px;font-weight:600;color:var(--dim)}
+.viewseg button.on{background:var(--accent);color:#fff}
+
+.empty{text-align:center;color:var(--faint);font-size:14px;padding:50px 20px;line-height:1.7}
+
+/* ---------- Sheet ---------- */
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.sheet-panel{position:relative;width:100%;max-width:560px;max-height:86vh;overflow-y:auto;background:var(--panel);border-radius:20px 20px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 24px);box-shadow:var(--shadow)}
+.sheet-panel h2{font-size:16px;margin-bottom:4px}
+.sheet-panel .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+.sheet-grp{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.sheet-btn{width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:10px}
+.sheet-btn:active{background:var(--panel3)}
+.sheet-btn .em{font-size:18px}
+.sheet-btn small{display:block;font-weight:400;color:var(--dim);font-size:12px;margin-top:2px}
+.sheet-close{display:block;width:100%;margin-top:12px;padding:12px;color:var(--dim);font-size:14px;font-weight:600}
+.toggle-row{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:8px}
+.toggle-row input{width:20px;height:20px}
+.sheet-panel textarea.big{width:100%;min-height:180px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;line-height:1.6;overflow:auto}
+.pick{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;margin-bottom:6px;display:flex;gap:8px;align-items:flex-start}
+.pick .p-add{color:var(--accent);font-weight:700;font-size:18px;flex:none;padding:0 4px}
+.pick .p-main{flex:1}
+.pick .p-tags{font-size:11px;color:var(--faint);margin-top:2px}
+.tagbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tagbar button{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--dim)}
+.tagbar button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mini-form{display:flex;flex-direction:column;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.mini-form input{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.mini-form button{background:var(--accent);color:#fff;border-radius:8px;padding:9px;font-weight:700;font-size:13px}
+.mini-form label.tiny{font-size:11px;color:var(--faint);margin-top:4px}
+.tips code,.toggle-row code{background:var(--panel3);padding:1px 4px;border-radius:4px;font-size:12px}
+.cf-status{font-size:12px;color:var(--dim);margin:8px 2px}
+.tips{font-size:13.5px;line-height:1.7;color:var(--dim)}
+.tips b{color:var(--text)}
+.tips ul{margin:6px 0 12px 18px}
+
+/* ---------- Recording bar ---------- */
+.recbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:70;background:var(--panel);border:1px solid var(--line2);border-radius:999px;padding:8px 10px 8px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.recbar .dot{width:10px;height:10px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.recbar #recTime{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;min-width:44px}
+.recbar button{border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700}
+#recStop{background:var(--danger);color:#fff}
+#recCancel{color:var(--dim)}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--panel3);border:1px solid var(--line2);color:var(--text);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:var(--shadow)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(min-width:640px){
+  .pins{grid-template-columns:1fr 1fr}
+  .cards{grid-template-columns:1fr 1fr}
+  .card.open{grid-column:1/-1}
+}
+@media(min-width:980px){
+  .pins{grid-template-columns:1fr 1fr 1fr}
+  .cards{grid-template-columns:1fr 1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand"><span class="b-ico">🎾</span>Trainingsbuch</div>
+  <div class="seg" id="areaSeg">
+    <button data-a="alle" class="on">Alle</button>
+    <button data-a="tennis">🎾 Tennis</button>
+    <button data-a="kondition">💪 Kondition</button>
+  </div>
+  <span id="syncDot" data-s="off" title="Cloud-Sync" aria-label="Cloud-Sync-Status"></span>
+  <button id="menuBtn" aria-label="Menü">⋯</button>
+</header>
+
+<div id="searchWrap">
+  <input id="search" type="search" autocomplete="off" placeholder="Alles durchsuchen…">
+  <button id="searchClear" class="hidden">✕</button>
+</div>
+
+<div id="compose">
+  <input id="composeInput" autocomplete="off" placeholder="Schnell notieren – Enter fügt zur nächsten Einheit hinzu">
+  <button id="composeMic" aria-label="Sprachmemo aufnehmen">🎤</button>
+  <button id="composeAdd">＋ Einheit</button>
+</div>
+
+<main id="board"></main>
+
+<div id="sheet" class="sheet hidden"><div class="sheet-bg"></div><div class="sheet-panel" id="sheetPanel"></div></div>
+
+<div id="recBar" class="recbar hidden">
+  <span class="dot"></span><span id="recTime">0:00</span>
+  <button id="recStop">Stopp &amp; speichern</button>
+  <button id="recCancel">Verwerfen</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   Trainingsbuch — Einzeldatei, offline, für GitHub Pages
+   Daten: localStorage (Struktur) + IndexedDB (Audio-Blobs)
+   Backup: Sichern/Laden als Datei
+   ============================================================ */
+
+const KEY = "trainingsbuch:v1";
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const todayISO = ()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
+const esc = s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function fmtDate(iso){try{return new Date(iso+"T00:00:00").toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short",year:"numeric"});}catch(e){return iso;}}
+function fmtShort(iso){try{return new Date(iso+"T00:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});}catch(e){return iso;}}
+function fmtDur(ms){const s=Math.round(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");}
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2200);}
+
+/* ---------- IndexedDB (Audio) ---------- */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("trainingsbuch",1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("audio"))r.result.createObjectStore("audio");};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbPut(k,v){const db=await idb();return new Promise((res,rej)=>{const tx=db.transaction("audio","readwrite");tx.objectStore("audio").put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{const q=db.transaction("audio","readonly").objectStore("audio").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function idbDel(k){const db=await idb();return new Promise((res,rej)=>{const tx=db.transaction("audio","readwrite");tx.objectStore("audio").delete(k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
+async function idbKeys(){const db=await idb();return new Promise((res,rej)=>{const q=db.transaction("audio","readonly").objectStore("audio").getAllKeys();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+const blobToDataURL = b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b);});
+const dataURLToBlob = async d=>(await fetch(d)).blob();
+
+/* ============================================================
+   Zielzonen-Skizze (Tennisplatz quer, Netz bei x=0.5).
+   court = { els:[ {t:"zone",x,y} | {t:"arrow",x1,y1,x2,y2} | {t:"note",x,y,s} ] }
+   x/y normalisiert 0..1. Renderer + Editor, kompatibel mit
+   der Übungssammlung.
+   ============================================================ */
+const CX = x => 12 + (isFinite(x)?x:0.5)*236;
+const CY = y => 10 + (isFinite(y)?y:0.5)*100;
+function courtSVG(court, o={}){
+  const els = (court && court.els) || [];
+  const ah = "ah_"+(o.id||"t");
+  const P=[];
+  P.push(`<rect x="12" y="10" width="236" height="100" fill="var(--court)" stroke="var(--courtline)" stroke-width="1.6"/>`);
+  P.push(`<line x1="130" y1="10" x2="130" y2="110" stroke="var(--courtline)" stroke-width="1.8"/>`);
+  P.push(`<line x1="12" y1="22.5" x2="248" y2="22.5" stroke="var(--courtline)" stroke-width="1" opacity=".85"/>`);
+  P.push(`<line x1="12" y1="97.5" x2="248" y2="97.5" stroke="var(--courtline)" stroke-width="1" opacity=".85"/>`);
+  P.push(`<line x1="65" y1="22.5" x2="65" y2="97.5" stroke="var(--courtline)" stroke-width="1" opacity=".85"/>`);
+  P.push(`<line x1="195" y1="22.5" x2="195" y2="97.5" stroke="var(--courtline)" stroke-width="1" opacity=".85"/>`);
+  P.push(`<line x1="65" y1="60" x2="195" y2="60" stroke="var(--courtline)" stroke-width="1" opacity=".85"/>`);
+  let n=0;
+  els.forEach(el=>{
+    if(el.t==="zone"){ n++;
+      P.push(`<circle cx="${CX(el.x).toFixed(1)}" cy="${CY(el.y).toFixed(1)}" r="9" fill="var(--accent)" fill-opacity=".30" stroke="var(--accent)" stroke-width="1.6"/>`);
+      P.push(`<text x="${CX(el.x).toFixed(1)}" y="${(CY(el.y)+3.4).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="800" fill="#fff">${n}</text>`);
+    } else if(el.t==="arrow"){
+      P.push(`<line x1="${CX(el.x1).toFixed(1)}" y1="${CY(el.y1).toFixed(1)}" x2="${CX(el.x2).toFixed(1)}" y2="${CY(el.y2).toFixed(1)}" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" marker-end="url(#${ah})"/>`);
+    } else if(el.t==="note"){
+      P.push(`<text x="${CX(el.x).toFixed(1)}" y="${CY(el.y).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff" paint-order="stroke" stroke="#0a2a17" stroke-width="3">${esc(el.s)}</text>`);
+    }
+  });
+  return `<svg viewBox="0 0 260 120" class="court" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs><marker id="${ah}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/></marker></defs>${P.join("")}</svg>`;
+}
+function courtField(court, onChange){
+  if(!court.els) court.els=[];
+  if(!court._id) court._id=uid();
+  const wrap=document.createElement("div"); wrap.className="court-wrap";
+  let mode="zone", pend=null;
+  const HINT={zone:"Aufs Feld tippen = nummerierte Zielzone",arrow:"Startpunkt tippen, dann Zielpunkt = Pfeil (Ballweg)",note:"Tippen und kurzen Text eingeben",erase:"Element antippen zum Entfernen"};
+  function paint(){
+    wrap.innerHTML = `
+      <div class="court-tools">
+        ${[["zone","● Zone"],["arrow","↗ Pfeil"],["note","A Text"],["erase","⌫ Löschen"]].map(([m,l])=>`<button data-m="${m}" class="${m===mode?'on':''}">${l}</button>`).join("")}
+        <button data-a="undo">↶ zurück</button><button data-a="clear">🗑 leeren</button>
+      </div>
+      <div class="court-host">${courtSVG(court,{id:court._id})}</div>
+      <div class="court-hint">${HINT[mode]}${pend?" · Startpunkt gesetzt":""}</div>`;
+    $$('[data-m]',wrap).forEach(b=>b.onclick=()=>{ mode=b.dataset.m; pend=null; paint(); });
+    $('[data-a=undo]',wrap).onclick=()=>{ court.els.pop(); pend=null; onChange(); paint(); };
+    $('[data-a=clear]',wrap).onclick=()=>{ if(court.els.length && !confirm("Skizze komplett leeren?")) return; court.els=[]; pend=null; onChange(); paint(); };
+    const svg=$('svg',wrap);
+    svg.addEventListener('pointerdown',ev=>{
+      ev.preventDefault();
+      const r=svg.getBoundingClientRect();
+      if(!r.width || !r.height) return;
+      let x=((ev.clientX-r.left)/r.width*260 - 12)/236;
+      let y=((ev.clientY-r.top)/r.height*120 - 10)/100;
+      if(!isFinite(x)||!isFinite(y)) return;
+      x=Math.max(0,Math.min(1,x)); y=Math.max(0,Math.min(1,y));
+      if(mode==="zone") court.els.push({t:"zone",x,y});
+      else if(mode==="note"){ const s=prompt("Kurzer Text:"); if(!s) return; court.els.push({t:"note",x,y,s:s.slice(0,20)}); }
+      else if(mode==="arrow"){ if(!pend){ pend={x,y}; } else { court.els.push({t:"arrow",x1:pend.x,y1:pend.y,x2:x,y2:y}); pend=null; } }
+      else if(mode==="erase"){
+        let bi=-1,bd=0.07;
+        court.els.forEach((el,i)=>{ const pts= el.t==="arrow"?[[el.x1,el.y1],[el.x2,el.y2]]:[[el.x,el.y]];
+          pts.forEach(([px,py])=>{ const d=Math.hypot(px-x,py-y); if(d<bd){ bd=d; bi=i; } }); });
+        if(bi>=0) court.els.splice(bi,1);
+      }
+      onChange(); paint();
+    });
+  }
+  paint();
+  return wrap;
+}
+function courtSheet(carrier, onSave){
+  carrier.court = carrier.court || {els:[]};
+  openSheet(`<h2>Zielzonen-Skizze</h2>
+    <div class="sub">${esc(carrier.text||"Übung")}</div>
+    <div id="csHost"></div>
+    <div class="sheet-grp"><button class="sheet-btn" id="csDone" style="justify-content:center;color:var(--accent);border-color:var(--accent)">Fertig</button></div>`);
+  $("#csHost",sheetPanel).appendChild(courtField(carrier.court, ()=>{ onSave&&onSave(); }));
+  $("#csDone",sheetPanel).onclick=()=>{
+    if(!carrier.court.els.length) carrier.court=null;
+    onSave&&onSave(); closeSheet();
+  };
+}
+
+/* ---------- Vorlagen (Standard) ---------- */
+const DEFAULT_TEMPLATES = {
+  tennis: [
+    {group:"Aufwärmen", items:["Einlaufen / Mobilisation","Einschlagen längs","Kurz–lang Rhythmus"]},
+    {group:"Technik",   items:["Schwerpunkt heute: "]},
+    {group:"Taktik",    items:["Muster: "]},
+    {group:"Spielformen", items:["Aufschlag + 1","Match-Tiebreak"]},
+    {group:"Ausklang",  items:["Dehnen","Kurzes Feedback"]}
+  ],
+  kondition: [
+    {group:"Mobilisation", items:["Hüfte / Sprunggelenk / BWS"]},
+    {group:"Aktivierung",  items:["Lauf-ABC / Koordination"]},
+    {group:"Hauptteil",    items:["Schwerpunkt: "]},
+    {group:"Core / Stabi", items:[""]},
+    {group:"Cool-down",    items:["Locker auslaufen","Dehnen"]}
+  ]
+};
+
+function seedState(){
+  const t = todayISO();
+  const d = new Date(); d.setDate(d.getDate()-5);
+  const past = (()=>{d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);})();
+  const G = ["Stunde 1","Stunde 2","Stunde 3","Stunde 4","Stunde 5","Stunde 6","Stunde 7"]
+    .map((name,i)=>({id:uid(),name,area:"tennis",order:i,roster:[],updatedAt:Date.now()}));
+  G[0].roster = ["Anna","Ben","Clara","David"].map(n=>({id:uid(),name:n}));
+  G[0].weekday = 2; G[0].time = "17:30";
+  return {
+    v:2,
+    settings:{theme:"dark", area:"alle", view:"board", carryOver:true, group:"alle"},
+    tomb:{pin:{},session:{},drill:{},memo:{},group:{}},
+    templatesUpdatedAt:0,
+    groups:G,
+    pins:[
+      {id:uid(),area:"tennis",title:"Ideen",body:"- Rückhand longline stabilisieren\n- Mehr Spielformen mit Zielzonen\n- ",updatedAt:Date.now()},
+      {id:uid(),area:"tennis",title:"Teilnehmer",body:"Gruppe (Mi 17:00):\n- \n- \n- ",updatedAt:Date.now()},
+      {id:uid(),area:"kondition",title:"Ideen",body:"- Antritts-Serie vor dem Tennis\n- ",updatedAt:Date.now()},
+      {id:uid(),area:"kondition",title:"Teilnehmer",body:"- ",updatedAt:Date.now()}
+    ],
+    drills:[
+      {id:uid(),area:"tennis",name:"Kreuz / Longline",tags:["Technik","Kontrolle"],note:"Diagonal spielen, auf Kommando longline wechseln."},
+      {id:uid(),area:"tennis",name:"Aufschlag + 1",tags:["Taktik","Spielform"],note:"Aufschlag nach Plan, erster Ball Vorhand inside-out."},
+      {id:uid(),area:"tennis",name:"2 gegen 1",tags:["Kondition","Spielform"],note:"Einzelner läuft, Paar spielt platziert."},
+      {id:uid(),area:"tennis",name:"Return blocken",tags:["Return"],note:"Nur blocken, tief in die Mitte."},
+      {id:uid(),area:"kondition",name:"Leiter-Koordination",tags:["Koordination","Aufwärmen"],note:""},
+      {id:uid(),area:"kondition",name:"Medizinball rotatorisch",tags:["Core","Power"],note:"Wurf gegen die Wand, aus der Hüfte."},
+      {id:uid(),area:"kondition",name:"Sprint 5-10-5",tags:["Antritt","Agility"],note:""},
+      {id:uid(),area:"kondition",name:"Box Jumps",tags:["Power","Beine"],note:""}
+    ],
+    templates:JSON.parse(JSON.stringify(DEFAULT_TEMPLATES)),
+    sessions:[
+      {id:uid(),area:"tennis",groupId:G[0].id,date:past,title:"Grundlinie + Aufschlag",status:"done",
+       place:"Halle 2",durationMin:90,participants:4,
+       items:[
+        {id:uid(),text:"Einlaufen / Mobilisation",done:true,group:"Aufwärmen"},
+        {id:uid(),text:"Cross stabil, 10er Serien",done:true,group:"Technik"},
+        {id:uid(),text:"Rückhand longline – Timing",done:false,group:"Technik"},
+        {id:uid(),text:"Aufschlag: zweiter Aufschlag kicken",done:false,group:"Taktik"},
+        {id:uid(),text:"Match-Tiebreak",done:true,group:"Spielformen"}
+       ],
+       note:"Gruppe war müde, Longline-Rückhand nächste Woche nochmal.",
+       reflection:"Aufschlag-Kick hat noch nicht funktioniert – langsamer aufbauen.",
+       attend:(()=>{ const o={}; G[0].roster.slice(0,3).forEach(p=>o[p.id]=1); return o; })(),
+       memos:[], createdAt:Date.now()-4e8, updatedAt:Date.now()-4e8}
+    ]
+  };
+}
+
+let state = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return seedState();
+    const s = JSON.parse(raw);
+    return ensure(s);
+  }catch(e){ console.warn(e); return seedState(); }
+}
+function ensure(s){
+  s.settings = Object.assign({theme:"dark",area:"alle",view:"board",carryOver:true,group:"alle"}, s.settings||{});
+  s.pins ||= []; s.drills ||= []; s.sessions ||= []; s.groups ||= [];
+  s.templates ||= JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+  s.templatesUpdatedAt ||= 0;
+  s.tomb = Object.assign({pin:{},session:{},drill:{},memo:{},group:{}}, s.tomb||{});
+  for(const g of ["pin","session","drill","memo","group"]) s.tomb[g] ||= {};
+  s.groups.forEach((g,i)=>{ g.order = g.order ?? i; g.roster ||= []; });
+  s.sessions.forEach(x=>{ x.items ||= []; x.memos ||= []; x.tags ||= []; x.attend ||= {}; x.items.forEach(i=>i.id ||= uid()); });
+  return s;
+}
+const WEEKDAYS = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch(e){ toast("Speicher voll – bitte Backup als Datei sichern"); }
+  if(!save._silent && typeof queueCloud==="function") queueCloud();
+}
+
+/* ---------- Ansicht-Status ---------- */
+const openIds = new Set();
+
+/* ---------- Rendering ---------- */
+const board = $("#board");
+
+function groupsForArea(a){
+  return state.groups
+    .filter(g=>a==="alle"||g.area===a)
+    .slice().sort((x,y)=>(x.order??0)-(y.order??0) || (x.name||"").localeCompare(y.name||""));
+}
+function groupName(id){ const g=state.groups.find(x=>x.id===id); return g?g.name:""; }
+function activeGroup(){
+  const g = state.settings.group;
+  if(!g || g==="alle") return "alle";
+  const obj = state.groups.find(x=>x.id===g);
+  if(!obj) return "alle";
+  if(state.settings.area!=="alle" && obj.area!==state.settings.area) return "alle";
+  return g;
+}
+
+function visibleSessions(){
+  const a = state.settings.area;
+  const grp = activeGroup();
+  const q = ($("#search").value||"").trim().toLowerCase();
+  const tag = state.settings.tag;
+  let list = state.sessions.slice();
+  if(a!=="alle") list = list.filter(s=>s.area===a);
+  if(grp!=="alle") list = list.filter(s=>s.groupId===grp);
+  if(tag && tag!=="alle") list = list.filter(s=>(s.tags||[]).includes(tag));
+  if(q){
+    list = list.filter(s=>{
+      const hay = [s.date, fmtDate(s.date), s.title, s.note, s.reflection, (s.tags||[]).join(" "),
+        ...s.items.map(i=>i.text), ...s.items.map(i=>i.group||"")].join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  list.sort((x,y)=> (y.date||"").localeCompare(x.date||"") || (y.createdAt||0)-(x.createdAt||0));
+  return list;
+}
+function visiblePins(){
+  const a = state.settings.area;
+  const q = ($("#search").value||"").trim().toLowerCase();
+  let list = state.pins.slice();
+  if(a!=="alle") list = list.filter(p=>p.area===a);
+  if(q) list = list.filter(p=>(p.title+" "+p.body).toLowerCase().includes(q));
+  return list;
+}
+
+function render(){
+  const a = state.settings.area;
+  $$("#areaSeg button").forEach(b=>b.classList.toggle("on", b.dataset.a===a));
+  document.documentElement.dataset.theme = state.settings.theme;
+  $("#searchClear").classList.toggle("hidden", !$("#search").value);
+
+  board.innerHTML = "";
+  if(state.settings.view==="woche"){ renderWoche(); return; }
+  board.appendChild(groupBar());
+  const tb = tagBar(); if(tb) board.appendChild(tb);
+  if(state.settings.view==="timeline"){ renderTimeline(); return; }
+
+  // Pins
+  const pins = visiblePins();
+  const pl = document.createElement("div"); pl.className="sec-label"; pl.textContent="Angepinnt";
+  board.appendChild(pl);
+  const pc = document.createElement("div"); pc.className="pins";
+  pins.forEach(p=>pc.appendChild(pinEl(p)));
+  const addP = document.createElement("button");
+  addP.className="addpin"; addP.textContent="＋ Notiz anpinnen";
+  addP.onclick=()=>{
+    const area = a==="alle" ? "tennis" : a;
+    state.pins.push({id:uid(),area,title:"Neue Notiz",body:"",updatedAt:Date.now()}); save(); render();
+  };
+  pc.appendChild(addP);
+  board.appendChild(pc);
+
+  // Sessions
+  const sl = document.createElement("div"); sl.className="sec-label";
+  sl.textContent = "Einheiten";
+  board.appendChild(sl);
+  const sessions = visibleSessions();
+  if(!sessions.length){
+    const e=document.createElement("div"); e.className="empty";
+    e.innerHTML = "Noch keine Einheiten.<br>Tippe auf <b>＋ Einheit</b>, um die nächste Stunde zu planen.";
+    board.appendChild(e);
+  }else{
+    const cc=document.createElement("div"); cc.className="cards";
+    sessions.forEach(s=>cc.appendChild(cardEl(s)));
+    board.appendChild(cc);
+  }
+}
+
+function sessionTags(){
+  const a=state.settings.area, set=new Set();
+  state.sessions.filter(s=>a==="alle"||s.area===a).forEach(s=>(s.tags||[]).forEach(t=>t&&set.add(t)));
+  return [...set].sort((x,y)=>x.localeCompare(y));
+}
+function tagBar(){
+  const tags = sessionTags();
+  if(!tags.length) return null;
+  const cur = state.settings.tag || "alle";
+  if(cur!=="alle" && !tags.includes(cur)) state.settings.tag="alle";
+  const wrap=document.createElement("div"); wrap.className="groupbar tagrow";
+  const mk=(label,val)=>{ const b=document.createElement("button");
+    b.className="gchip"+(val===(state.settings.tag||"alle")?" on":"");
+    b.textContent=label; b.onclick=()=>{ state.settings.tag=val; save(); render(); }; return b; };
+  wrap.appendChild(mk("alle Schwerpunkte","alle"));
+  tags.forEach(t=>wrap.appendChild(mk("＃"+t,t)));
+  return wrap;
+}
+
+function groupOpenCount(gid){
+  const last = state.sessions.filter(s=>s.groupId===gid)
+    .sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdAt||0)-(a.createdAt||0))[0];
+  if(!last) return 0;
+  return last.items.filter(i=>!i.done && i.text.trim()).length;
+}
+
+function groupBar(){
+  const wrap = document.createElement("div"); wrap.className="groupbar";
+  const cur = activeGroup();
+  const mk = (label,val,cls)=>{
+    const b=document.createElement("button");
+    b.className = "gchip"+(val===cur?" on":"")+(cls?" "+cls:"");
+    b.textContent = label;
+    b.onclick=()=>{ state.settings.group = val; save(); render(); };
+    return b;
+  };
+  wrap.appendChild(mk("Alle Stunden","alle"));
+  groupsForArea(state.settings.area).forEach(g=>{
+    const b = mk(g.name, g.id);
+    if(state.settings.area==="alle") b.dataset.a = g.area;
+    const oc = groupOpenCount(g.id);
+    if(oc){ const s=document.createElement("sup"); s.className="gbadge"; s.textContent=oc; s.title=oc+" offene Punkte in der letzten Einheit"; b.appendChild(s); }
+    wrap.appendChild(b);
+  });
+  const add=document.createElement("button");
+  add.className="gchip ghost"; add.textContent="＋ Stunde";
+  add.onclick=()=>addGroupSheet();
+  wrap.appendChild(add);
+  const edit=document.createElement("button");
+  edit.className="gchip ghost"; edit.textContent="✏︎";
+  edit.title="Stunden verwalten";
+  edit.onclick=()=>groupManageSheet();
+  wrap.appendChild(edit);
+  return wrap;
+}
+
+function pinEl(p){
+  const el = document.createElement("div"); el.className="pin";
+  el.innerHTML = `
+    <div class="pin-head">
+      <span class="pin-ico">📌</span>
+      <input class="pin-title" value="${esc(p.title)}">
+      <button class="del">✕</button>
+    </div>
+    <textarea class="pin-body" placeholder="Text…">${esc(p.body)}</textarea>`;
+  const ti = $(".pin-title",el), bo = $(".pin-body",el);
+  ti.oninput = ()=>{ p.title=ti.value; p.updatedAt=Date.now(); save(); };
+  bo.oninput = ()=>{ p.body=bo.value; p.updatedAt=Date.now(); autosize(bo); save(); };
+  $(".del",el).onclick = ()=>{ if(confirm("Notiz löschen?")){ state.tomb.pin[p.id]=Date.now(); state.pins=state.pins.filter(x=>x.id!==p.id); save(); render(); } };
+  requestAnimationFrame(()=>autosize(bo));
+  return el;
+}
+function autosize(t){ t.style.height="auto"; t.style.height=t.scrollHeight+"px"; }
+
+function cardEl(s){
+  const el = document.createElement("div");
+  el.className = "card" + (openIds.has(s.id)?" open":"");
+  el.dataset.a = s.area;
+  const done = s.items.filter(i=>i.done).length;
+  const total = s.items.length;
+  const planMin = s.items.reduce((n,i)=>n+(+i.min||0),0);
+  const head = document.createElement("div"); head.className="card-head";
+  head.innerHTML = `
+    <div class="row1">
+      <span class="chip ${s.area}">${s.area==="tennis"?"Tennis":"Kondition"}</span>
+      ${s.groupId&&groupName(s.groupId)?`<span class="chip grp">${esc(groupName(s.groupId))}</span>`:""}
+      ${s.status==="done"?'<span class="chip done">erledigt</span>':""}
+      <span class="card-date">${fmtDate(s.date)}</span>
+    </div>
+    ${s.title?`<div class="card-title">${esc(s.title)}</div>`:""}
+    ${(s.tags||[]).length?`<div class="card-tags">${s.tags.map(t=>`<span>＃${esc(t)}</span>`).join("")}</div>`:""}
+    <div class="card-meta">
+      ${total?`<span class="pg">${done}/${total} Punkte</span>`:""}
+      ${planMin?`<span>≈ ${planMin}′</span>`:(s.durationMin?`<span>${s.durationMin} min</span>`:"")}
+      ${s.memos.length?`<span>🎤 ${s.memos.length}</span>`:""}
+      ${(()=>{ const g=state.groups.find(x=>x.id===s.groupId); const p=Object.keys(s.attend||{}).length;
+        return (g&&g.roster&&g.roster.length&&p)?`<span>👥 ${p}/${g.roster.length}</span>`:""; })()}
+      ${s.items.some(i=>i.court&&i.court.els&&i.court.els.length)?`<span>📐</span>`:""}
+      ${s.place?`<span>${esc(s.place)}</span>`:""}
+    </div>`;
+  head.onclick = ()=>{ if(openIds.has(s.id))openIds.delete(s.id); else openIds.add(s.id); render(); };
+  el.appendChild(head);
+
+  if(openIds.has(s.id)){
+    const body = document.createElement("div"); body.className="card-body";
+    body.appendChild(sessionEditor(s));
+    el.appendChild(body);
+  }
+  return el;
+}
+
+function sessionEditor(s){
+  const wrap = document.createElement("div");
+
+  // Titel
+  const title = document.createElement("input");
+  title.className="title-in"; title.placeholder="Fokus / Titel der Einheit"; title.value=s.title||"";
+  title.oninput=()=>{ s.title=title.value; touch(s); saveSoft(); };
+  wrap.appendChild(title);
+
+  // Stunde / Gruppe
+  const gsel = document.createElement("select");
+  gsel.className="title-in";
+  gsel.innerHTML = ['<option value="">— ohne Stunde —</option>']
+    .concat(groupsForArea(s.area).map(g=>`<option value="${g.id}"${s.groupId===g.id?" selected":""}>${esc(g.name)}</option>`))
+    .join("");
+  gsel.onchange = ()=>{ s.groupId = gsel.value || null; touch(s); save(); render(); };
+  wrap.appendChild(gsel);
+
+  // Schwerpunkte / Tags
+  const tin = document.createElement("input");
+  tin.className="title-in"; tin.placeholder="Schwerpunkte, mit Komma (z. B. Aufschlag, Taktik)";
+  tin.value=(s.tags||[]).join(", ");
+  tin.oninput=()=>{ s.tags = tin.value.split(",").map(x=>x.trim()).filter(Boolean); touch(s); saveSoft(); };
+  tin.onblur=()=>render();
+  wrap.appendChild(tin);
+
+  // Felder
+  const fg = document.createElement("div"); fg.className="fld-grid";
+  fg.innerHTML = `
+    <div class="fld"><label>Datum</label><input type="date" data-k="date" value="${s.date}"></div>
+    <div class="fld"><label>Status</label><select data-k="status">
+       <option value="planned"${s.status!=="done"?" selected":""}>geplant</option>
+       <option value="done"${s.status==="done"?" selected":""}>erledigt</option></select></div>
+    <div class="fld"><label>Ort</label><input data-k="place" value="${esc(s.place||"")}" placeholder="Halle / Platz"></div>
+    <div class="fld"><label>Dauer (min)</label><input data-k="durationMin" type="number" inputmode="numeric" value="${s.durationMin||""}"></div>
+    <div class="fld"><label>Teilnehmer</label><input data-k="participants" type="number" inputmode="numeric" value="${s.participants||""}"></div>
+    <div class="fld"><label>Bereich</label><select data-k="area">
+       <option value="tennis"${s.area==="tennis"?" selected":""}>🎾 Tennis</option>
+       <option value="kondition"${s.area==="kondition"?" selected":""}>💪 Kondition</option></select></div>`;
+  $$("input,select",fg).forEach(inp=>{
+    inp.onchange = ()=>{
+      const k=inp.dataset.k;
+      s[k] = (k==="durationMin"||k==="participants") ? (parseInt(inp.value)||"") : inp.value;
+      if(k==="area"){ const g=state.groups.find(x=>x.id===s.groupId); if(g && g.area!==s.area) s.groupId=null; }
+      touch(s); save();
+      if(k==="area"||k==="status"||k==="date") render();
+    };
+  });
+  wrap.appendChild(fg);
+
+  // Anwesenheit (wenn Stunde mit Kader)
+  const grp = state.groups.find(x=>x.id===s.groupId);
+  if(grp){
+    const lbl = mkLabel("Anwesenheit");
+    const cnt = document.createElement("span"); cnt.className="att-count"; lbl.appendChild(cnt);
+    wrap.appendChild(lbl);
+    const aw = document.createElement("div"); aw.className="att-wrap";
+    const setCnt=()=>{ const p=Object.keys(s.attend||{}).length; cnt.textContent=(grp.roster||[]).length?"  "+p+" / "+grp.roster.length+" da":""; };
+    const drawAtt=()=>{
+      aw.innerHTML="";
+      (grp.roster||[]).forEach(pl=>{
+        const b=document.createElement("button");
+        b.className="att"+(s.attend&&s.attend[pl.id]?" on":"");
+        b.textContent=pl.name;
+        b.onclick=()=>{ s.attend=s.attend||{}; if(s.attend[pl.id]) delete s.attend[pl.id]; else s.attend[pl.id]=1; touch(s); save(); drawAtt(); setCnt(); };
+        aw.appendChild(b);
+      });
+      const add=document.createElement("button"); add.className="att-add"; add.textContent="＋ Person";
+      add.onclick=()=>{ const n=prompt("Name:"); if(!n||!n.trim()) return;
+        const pid=uid(); grp.roster=grp.roster||[]; grp.roster.push({id:pid,name:n.trim()}); grp.updatedAt=Date.now();
+        s.attend=s.attend||{}; s.attend[pid]=1; touch(s); save(); drawAtt(); setCnt(); };
+      aw.appendChild(add);
+    };
+    drawAtt(); setCnt();
+    wrap.appendChild(aw);
+  }
+
+  // Punkte (gruppiert)
+  const sumLbl = document.createElement("div"); sumLbl.className="blk-label";
+  wrap.appendChild(sumLbl);
+  const list = document.createElement("div");
+  const refreshSum = ()=>{
+    const mins = s.items.reduce((n,i)=>n+(+i.min||0),0);
+    sumLbl.textContent = "Punkte" + (mins?"  ·  ≈ "+mins+" min geplant":"");
+  };
+  s.__refreshSum = refreshSum;
+  renderItems(list, s); refreshSum();
+  wrap.appendChild(list);
+
+  // Aktions-Reihe
+  const acts = document.createElement("div"); acts.className="act-row";
+  const bAdd = mkBtn("＋ Punkt", ()=>{
+    const last = s.items[s.items.length-1];
+    const it = {id:uid(),text:"",done:false,group:last?last.group||"":"",min:""};
+    s.items.push(it); touch(s); save(); renderItems(list,s); refreshSum();
+    focusItem(list, it.id);
+  });
+  const bLib = mkBtn("📚 aus Sammlung", ()=>openLibPick(s));
+  const bCat = mkBtn("＋ aus Katalog", ()=>openDrillPick(s));
+  const bIdea= mkBtn("💡 aus Ideen", ()=>openIdeaPick(s));
+  const bCarry=mkBtn("↧ Offene Punkte übernehmen", ()=>{
+    const n = carryOverInto(s);
+    if(n){ save(); renderItems(list,s); refreshSum(); toast(n+" Punkt(e) übernommen"); }
+    else toast("Keine offenen Punkte in früheren Einheiten");
+  });
+  acts.append(bAdd,bLib,bCat,bIdea,bCarry);
+  wrap.appendChild(acts);
+
+  // Notiz
+  wrap.appendChild(mkLabel("Notiz"));
+  const note = document.createElement("textarea");
+  note.className="note-in"; note.placeholder="Freie Notizen zur Planung…"; note.value=s.note||"";
+  note.oninput=()=>{ s.note=note.value; autosize(note); touch(s); saveSoft(); };
+  wrap.appendChild(note); requestAnimationFrame(()=>autosize(note));
+
+  // Reflexion
+  wrap.appendChild(mkLabel("Nachbesprechung – was war, was nächstes Mal?"));
+  const refl = document.createElement("textarea");
+  refl.className="refl-in"; refl.placeholder="Direkt nach dem Training ausfüllen…"; refl.value=s.reflection||"";
+  refl.oninput=()=>{ s.reflection=refl.value; autosize(refl); touch(s); saveSoft(); };
+  wrap.appendChild(refl); requestAnimationFrame(()=>autosize(refl));
+
+  // Sprachmemos
+  wrap.appendChild(mkLabel("Sprachmemos"));
+  const memos = document.createElement("div"); memos.className="memos";
+  renderMemos(memos, s);
+  wrap.appendChild(memos);
+  const rb = document.createElement("button");
+  rb.className="recbtn"; rb.textContent="🎤 Memo aufnehmen";
+  rb.onclick=()=>startRec(s.id);
+  wrap.appendChild(rb);
+
+  // Löschen
+  const del = document.createElement("button");
+  del.className="card-del"; del.textContent="Diese Einheit löschen";
+  del.onclick=async()=>{
+    if(!confirm("Einheit inkl. Memos löschen?")) return;
+    for(const m of s.memos){ try{await idbDel(m.id);}catch(e){} state.tomb.memo[m.id]=Date.now(); }
+    state.tomb.session[s.id]=Date.now();
+    state.sessions = state.sessions.filter(x=>x.id!==s.id);
+    openIds.delete(s.id); save(); render();
+  };
+  wrap.appendChild(del);
+  return wrap;
+}
+
+function mkBtn(t,fn){const b=document.createElement("button");b.textContent=t;b.onclick=fn;return b;}
+function mkLabel(t){const d=document.createElement("div");d.className="blk-label";d.textContent=t;return d;}
+let _softT; function saveSoft(){ clearTimeout(_softT); _softT=setTimeout(save,400); }
+function touch(s){ s.updatedAt=Date.now(); }
+
+function renderItems(container, s){
+  container.innerHTML="";
+  let lastGroup = null;
+  s.items.forEach((it,idx)=>{
+    if((it.group||"") !== (lastGroup||"") && it.group){
+      const g=document.createElement("div"); g.className="grp"; g.textContent=it.group;
+      g.title="Tippen zum Umbenennen der Gruppe";
+      g.onclick=()=>{ const nv=prompt("Gruppe umbenennen:", it.group); if(nv==null)return;
+        const old=it.group; s.items.forEach(x=>{ if((x.group||"")===old) x.group=nv; }); save(); renderItems(container,s); };
+      container.appendChild(g);
+    }
+    lastGroup = it.group||"";
+    const row=document.createElement("div"); row.className="item"+(it.done?" done":"");
+    row.dataset.id = it.id;
+    const hasCourt = it.court && it.court.els && it.court.els.length;
+    row.innerHTML = `<button class="cb">✓</button>
+      <input class="it-text" value="${esc(it.text)}" placeholder="Übung / Punkt…">
+      <input class="it-min" type="number" inputmode="numeric" value="${it.min||""}" placeholder="min" aria-label="Minuten">
+      <button class="it-court${hasCourt?" has":""}" title="Zielzonen-Skizze">📐</button>
+      <button class="mv" data-d="-1">▲</button><button class="mv" data-d="1">▼</button>
+      <button class="x">✕</button>`;
+    $(".cb",row).onclick=()=>{ it.done=!it.done; touch(s); save(); render(); };
+    $(".it-court",row).onclick=()=>courtSheet(it, ()=>{ touch(s); save(); renderItems(container,s); });
+    $(".it-min",row).oninput=e=>{ it.min=parseInt(e.target.value)||""; touch(s); saveSoft(); s.__refreshSum&&s.__refreshSum(); };
+    const tx=$(".it-text",row);
+    tx.oninput=()=>{ it.text=tx.value; touch(s); saveSoft(); };
+    tx.onkeydown=(e)=>{
+      if(e.key==="Enter"){ e.preventDefault();
+        const ni={id:uid(),text:"",done:false,group:it.group||""};
+        s.items.splice(idx+1,0,ni); touch(s); save(); renderItems(container,s); focusItem(container,ni.id);
+      } else if(e.key==="Backspace" && tx.value===""){ e.preventDefault();
+        s.items.splice(idx,1); touch(s); save(); renderItems(container,s);
+        const prev=s.items[idx-1]; if(prev) focusItem(container,prev.id);
+      }
+    };
+    $$(".mv",row).forEach(b=>b.onclick=()=>{
+      const d=+b.dataset.d, j=idx+d;
+      if(j<0||j>=s.items.length) return;
+      [s.items[idx],s.items[j]]=[s.items[j],s.items[idx]];
+      touch(s); save(); renderItems(container,s);
+    });
+    $(".x",row).onclick=()=>{ s.items.splice(idx,1); touch(s); save(); render(); };
+    container.appendChild(row);
+    if(hasCourt){
+      const th=document.createElement("div");
+      th.innerHTML = courtSVG(it.court,{id:"i"+it.id}).replace('class="court"','class="court court-thumb"');
+      th.firstChild.onclick=()=>courtSheet(it, ()=>{ touch(s); save(); renderItems(container,s); });
+      container.appendChild(th.firstChild);
+    }
+  });
+}
+function focusItem(container,id){
+  requestAnimationFrame(()=>{
+    const el = container.querySelector('.item[data-id="'+id+'"] .it-text');
+    if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  });
+}
+
+/* ---------- Memos rendern ---------- */
+async function renderMemos(container, s){
+  container.innerHTML="";
+  if(!s.memos.length){
+    const e=document.createElement("div"); e.style.cssText="color:var(--faint);font-size:12.5px";
+    e.textContent="Noch keine Aufnahme.";
+    container.appendChild(e); return;
+  }
+  for(const m of s.memos){
+    const el=document.createElement("div"); el.className="memo";
+    el.innerHTML=`
+      <div class="m-row">
+        <input class="m-label" value="${esc(m.label||"")}" placeholder="Beschriftung (optional)">
+        <span class="m-time">${new Date(m.createdAt).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})} · ${m.durMs?fmtDur(m.durMs):"–"}</span>
+        <button class="m-del">✕</button>
+      </div>
+      <audio controls preload="none"></audio>
+      <div class="m-tlabel">📝 Transkript ${SPEECH_OK?"":"(manuell – Spracherkennung hier nicht verfügbar)"}</div>
+      <textarea class="m-trans" placeholder="Stichworte, was auf dem Memo gesagt wird…">${esc(m.transcript||"")}</textarea>`;
+    $(".m-label",el).oninput=e=>{ m.label=e.target.value; m.mLabelAt=Date.now(); saveSoft(); };
+    const tr=$(".m-trans",el);
+    tr.oninput=()=>{ m.transcript=tr.value; m.mTransAt=Date.now(); autosize(tr); touch(s); saveSoft(); };
+    requestAnimationFrame(()=>autosize(tr));
+    $(".m-del",el).onclick=async()=>{
+      if(!confirm("Memo löschen?")) return;
+      try{await idbDel(m.id);}catch(e){}
+      state.tomb.memo[m.id]=Date.now();
+      s.memos=s.memos.filter(x=>x.id!==m.id); touch(s); save(); renderMemos(container,s);
+    };
+    container.appendChild(el);
+    idbGet(m.id).then(blob=>{
+      if(blob){ $("audio",el).src=URL.createObjectURL(blob); }
+      else {
+        const a=$("audio",el); a.replaceWith(Object.assign(document.createElement("div"),
+          {className:"m-row",style:"color:var(--faint);font-size:12px",
+           textContent:"⤓ Aufnahme noch nicht auf diesem Gerät – Cloud-Sync starten"}));
+      }
+    });
+  }
+}
+
+/* ---------- Timeline ---------- */
+function renderTimeline(){
+  const l=document.createElement("div"); l.className="sec-label"; l.textContent="Verlauf";
+  board.appendChild(l);
+  const list = visibleSessions();
+  if(!list.length){ const e=document.createElement("div");e.className="empty";e.textContent="Noch nichts im Verlauf.";board.appendChild(e);return; }
+  let lastM=null;
+  list.forEach(s=>{
+    const m = new Date(s.date+"T00:00:00").toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+    if(m!==lastM){ const h=document.createElement("div");h.className="tl-month";h.textContent=m;board.appendChild(h);lastM=m; }
+    const done=s.items.filter(i=>i.done).length;
+    const r=document.createElement("div"); r.className="tl-row";
+    r.innerHTML=`<span class="tl-d">${fmtShort(s.date)}</span>
+      <span class="tl-dot ${s.area}"></span>
+      <span class="tl-t">${esc(s.title||(s.area==="tennis"?"Tennis":"Kondition"))}</span>
+      <span class="tl-pg">${s.items.length?done+"/"+s.items.length:""}</span>`;
+    r.onclick=()=>{ state.settings.view="board"; openIds.add(s.id); save(); render();
+      requestAnimationFrame(()=>{ const c=[...board.querySelectorAll(".card")].find(x=>x.dataset.a);
+        const target=[...board.querySelectorAll(".card")].find(x=>x.querySelector(".card-date")?.textContent===fmtDate(s.date));
+        target?.scrollIntoView({behavior:"smooth",block:"center"}); });
+    };
+    board.appendChild(r);
+  });
+}
+
+/* ---------- Wochenplan ---------- */
+function nextDateForWeekday(wd){          // wd: 0=Mo … 6=So
+  const now = new Date();
+  const jsToday = now.getDay();           // 0=So … 6=Sa
+  const jsTarget = (wd+1)%7;
+  const delta = (jsTarget - jsToday + 7) % 7;
+  const d = new Date(now); d.setHours(0,0,0,0); d.setDate(now.getDate()+delta);
+  d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+  return { iso: d.toISOString().slice(0,10), delta };
+}
+function renderWoche(){
+  const head=document.createElement("div"); head.className="sec-label"; head.textContent="Wochenplan"; board.appendChild(head);
+  const withDay = state.groups.filter(g=>g.weekday!=null)
+    .map(g=>({g, ...nextDateForWeekday(g.weekday)}))
+    .sort((a,b)=> a.delta-b.delta || (a.g.time||"").localeCompare(b.g.time||""));
+  const without = state.groups.filter(g=>g.weekday==null)
+    .slice().sort((x,y)=>(x.order??0)-(y.order??0));
+
+  if(!withDay.length && !without.length){
+    const e=document.createElement("div"); e.className="empty";
+    e.innerHTML="Noch keine Stunden mit festem Termin.<br>In <b>Stunden verwalten → Termin &amp; Kader</b> Wochentag + Uhrzeit setzen.";
+    board.appendChild(e);
+  }
+
+  const relLabel = d => d===0?"heute":"morgen";
+  const mkRow = (g, iso, delta)=>{
+    const planned = state.sessions.find(s=>s.groupId===g.id && s.date===iso);
+    const last = state.sessions.filter(s=>s.groupId===g.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""))[0];
+    const open = last ? last.items.filter(i=>!i.done && i.text.trim()).length : 0;
+    const row=document.createElement("div"); row.className="wk-row";
+    row.innerHTML=`
+      <div class="wk-when">
+        <b class="${delta!=null&&delta<=1?"wk-due":""}">${delta==null?"—":(delta<=1?relLabel(delta):WEEKDAYS[g.weekday])}</b>
+        <span>${g.time||""}</span>
+      </div>
+      <div class="wk-body">
+        <div class="wk-name">${esc(g.name)}</div>
+        <div class="wk-meta">${delta==null?"kein fester Termin":fmtDate(iso)}${open?` · ${open} offene Punkte`:""}${planned?" · ✓ geplant":""}</div>
+      </div>
+      <div class="wk-act"></div>`;
+    const act=$(".wk-act",row);
+    const bPlan=document.createElement("button");
+    if(planned){ bPlan.textContent="öffnen"; bPlan.className="prim"; bPlan.onclick=()=>{ state.settings.view="board"; state.settings.group=g.id; openIds.clear(); openIds.add(planned.id); save(); render(); }; }
+    else { bPlan.textContent=delta==null?"＋ Einheit":"＋ für "+fmtShort(iso); bPlan.className="prim";
+      bPlan.onclick=()=>{
+        const src = (g.template&&g.template.length)?"group":"area";
+        newSession(g.area, src, g.id);
+        const ns=state.sessions[state.sessions.length-1];
+        if(delta!=null){ ns.date=iso; touch(ns); }
+        state.settings.view="board"; save(); render();
+      };
+    }
+    act.appendChild(bPlan);
+    if(last){ const bLast=document.createElement("button"); bLast.textContent="letzte";
+      bLast.onclick=()=>{ state.settings.view="board"; state.settings.group=g.id; openIds.clear(); openIds.add(last.id); save(); render(); };
+      act.appendChild(bLast); }
+    return row;
+  };
+
+  withDay.forEach(x=> board.appendChild(mkRow(x.g, x.iso, x.delta)));
+  if(without.length){
+    const h=document.createElement("div"); h.className="sec-label"; h.textContent="Ohne festen Termin"; board.appendChild(h);
+    without.forEach(g=> board.appendChild(mkRow(g, null, null)));
+  }
+  const mg=document.createElement("button"); mg.className="addpin"; mg.textContent="Stunden / Termine verwalten";
+  mg.style.marginTop="14px"; mg.onclick=groupManageSheet; board.appendChild(mg);
+}
+
+/* ---------- Neue Einheit ---------- */
+function newSession(area, tplSource, groupId){
+  let gid = groupId;
+  if(gid===undefined){
+    const g = state.groups.find(x=>x.id===state.settings.group);
+    gid = (g && g.area===area) ? g.id : null;
+  }
+  const s = {
+    id:uid(), area, groupId:gid||null, date:todayISO(), title:"", status:"planned",
+    place:"", durationMin:"", participants:"", tags:[], attend:{},
+    items:[], note:"", reflection:"", memos:[],
+    createdAt:Date.now(), updatedAt:Date.now()
+  };
+  // Vorlage bestimmen: "group" = Vorlage dieser Stunde, "area" = Bereichsvorlage
+  let tpl = null;
+  if(tplSource==="group" && gid){
+    const g = state.groups.find(x=>x.id===gid);
+    if(g && g.template && g.template.length) tpl = g.template;
+  }
+  if(!tpl && (tplSource==="area" || tplSource==="group" || tplSource===true)) tpl = state.templates[area]||[];
+  if(tpl){
+    tpl.forEach(g=>{
+      (g.items||[]).forEach(t=> s.items.push({id:uid(),text:t,done:false,group:g.group,min:""}));
+    });
+  }
+  if(state.settings.carryOver) carryOverInto(s, true);
+  state.sessions.push(s);
+  openIds.clear(); openIds.add(s.id);
+  save(); render();
+  requestAnimationFrame(()=>{
+    const target=[...board.querySelectorAll(".card")][0];
+    target?.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+}
+function carryOverInto(s, silent){
+  const cand = state.sessions.filter(x=>x.area===s.area && x.id!==s.id && x.date<=s.date);
+  const sameGroup = s.groupId ? cand.filter(x=>x.groupId===s.groupId) : [];
+  const pool = sameGroup.length ? sameGroup : cand;
+  const prev = pool
+    .sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.createdAt||0)-(a.createdAt||0))[0];
+  if(!prev) return 0;
+  const open = prev.items.filter(i=>!i.done && i.text.trim());
+  if(!open.length) return 0;
+  const g = "Offen aus "+fmtShort(prev.date);
+  open.forEach(i=> s.items.push({id:uid(),text:i.text,done:false,group:g}));
+  touch(s);
+  return open.length;
+}
+
+/* ---------- Aufnahme ---------- */
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SPEECH_OK = !!SpeechRec;
+let rec = {mr:null,chunks:[],stream:null,t0:0,timer:null,targetId:null,cancelled:false,sr:null,transcript:""};
+function startSpeech(){
+  if(!SPEECH_OK) return;
+  try{
+    const sr = new SpeechRec();
+    sr.lang="de-DE"; sr.continuous=true; sr.interimResults=false;
+    sr.onresult = ev=>{
+      for(let i=ev.resultIndex;i<ev.results.length;i++){
+        if(ev.results[i].isFinal) rec.transcript += (rec.transcript?" ":"") + ev.results[i][0].transcript.trim();
+      }
+    };
+    sr.onerror = ()=>{};
+    sr.onend = ()=>{ if(rec.mr && rec.mr.state==="recording" && !rec.cancelled){ try{ sr.start(); }catch(e){} } };
+    sr.start();
+    rec.sr = sr;
+  }catch(e){ rec.sr=null; }
+}
+function stopSpeech(){ if(rec.sr){ try{ rec.sr.onend=null; rec.sr.stop(); }catch(e){} rec.sr=null; } }
+async function startRec(sessionId){
+  if(rec.mr && rec.mr.state==="recording") return;
+  let targetId = sessionId;
+  if(!targetId){
+    // Compose-Mic: neueste geplante Einheit im aktuellen Bereich, sonst neue anlegen
+    const a = state.settings.area==="alle" ? "tennis" : state.settings.area;
+    let t = state.sessions.filter(s=>s.area===a).sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0];
+    if(!t){ newSession(a,false); t = state.sessions[state.sessions.length-1]; }
+    targetId = t.id; openIds.add(targetId);
+  }
+  try{
+    rec.stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(e){ toast("Kein Mikrofon­zugriff möglich"); return; }
+  const mime = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/aac"]
+    .find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || "";
+  rec.mr = mime ? new MediaRecorder(rec.stream,{mimeType:mime}) : new MediaRecorder(rec.stream);
+  rec.chunks=[]; rec.cancelled=false; rec.targetId=targetId; rec.t0=Date.now(); rec.transcript="";
+  rec.mr.ondataavailable = e=>{ if(e.data.size) rec.chunks.push(e.data); };
+  rec.mr.onstop = async ()=>{
+    stopSpeech();
+    rec.stream.getTracks().forEach(t=>t.stop());
+    $("#recBar").classList.add("hidden"); clearInterval(rec.timer);
+    if(rec.cancelled) return;
+    const blob = new Blob(rec.chunks,{type: rec.mr.mimeType||mime||"audio/webm"});
+    const id = uid();
+    try{ await idbPut(id, blob); }catch(e){ toast("Audio konnte nicht gespeichert werden"); return; }
+    const s = state.sessions.find(x=>x.id===rec.targetId);
+    if(!s) return;
+    const memo = {id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0};
+    if(rec.transcript.trim()){ memo.transcript = rec.transcript.trim(); memo.mTransAt = Date.now(); }
+    s.memos.push(memo);
+    touch(s); save(); render();
+    toast(memo.transcript ? "Memo + Transkript gespeichert" : "Memo gespeichert · "+fmtDate(s.date));
+  };
+  rec.mr.start();
+  startSpeech();
+  $("#recBar").classList.remove("hidden");
+  $("#recTime").textContent="0:00";
+  rec.timer = setInterval(()=>{ $("#recTime").textContent = fmtDur(Date.now()-rec.t0); }, 500);
+}
+$("#recStop").onclick = ()=>{ if(rec.mr && rec.mr.state==="recording"){ rec.cancelled=false; rec.mr.stop(); } };
+$("#recCancel").onclick = ()=>{ if(rec.mr && rec.mr.state==="recording"){ rec.cancelled=true; rec.mr.stop(); toast("Aufnahme verworfen"); } };
+
+/* ---------- Sheet ---------- */
+const sheet=$("#sheet"), sheetPanel=$("#sheetPanel");
+$(".sheet-bg",sheet).onclick=closeSheet;
+function openSheet(html){ sheetPanel.innerHTML=html; sheet.classList.remove("hidden"); }
+function closeSheet(){ sheet.classList.add("hidden"); sheetPanel.innerHTML=""; }
+
+function menuSheet(){
+  const v = state.settings.view;
+  openSheet(`
+    <h2>Menü</h2>
+    <div class="sub">Trainingsbuch · ${CFG.on()?"Cloud-Sync aktiv":"Daten liegen lokal auf diesem Gerät"}</div>
+    <div class="viewseg" id="vseg">
+      <button data-v="board" class="${v==="board"?"on":""}">🗂️ Board</button>
+      <button data-v="woche" class="${v==="woche"?"on":""}">🗓️ Woche</button>
+      <button data-v="timeline" class="${v==="timeline"?"on":""}">📋 Verlauf</button>
+    </div>
+    <div class="sheet-grp">
+      <button class="sheet-btn" data-x="theme"><span class="em">${state.settings.theme==="dark"?"☀️":"🌙"}</span>${state.settings.theme==="dark"?"Helles Design":"Dunkles Design"}</button>
+      <button class="sheet-btn" data-x="groups"><span class="em">🗓️</span>Stunden verwalten<small>Deine Trainings-Slots benennen &amp; ordnen</small></button>
+      <button class="sheet-btn" data-x="drills"><span class="em">🎯</span>Übungskatalog (lokal)<small>Eigene Übungen für „＋ aus Katalog“</small></button>
+      <button class="sheet-btn" data-x="lib"><span class="em">📚</span>Übungssammlung aktualisieren<small>Geteilte Sammlung neu vom Repo laden</small></button>
+      <button class="sheet-btn" data-x="tpl"><span class="em">🧩</span>Vorlagen bearbeiten<small>Standard-Aufbau für neue Einheiten (global)</small></button>
+    </div>
+    <div class="sheet-grp">
+      <button class="sheet-btn" data-x="cloud"><span class="em">☁️</span>Cloud-Sync (Handy ↔ Mac)<small>${CFG.on()?"aktiv – tippen zum Einstellen":"über GitHub einrichten"}</small></button>
+      <button class="sheet-btn" data-x="exp"><span class="em">💾</span>Backup als Datei sichern<small>Alles inkl. Sprachmemos (.json)</small></button>
+      <button class="sheet-btn" data-x="imp"><span class="em">📂</span>Backup aus Datei laden</button>
+      <button class="sheet-btn" data-x="md"><span class="em">📝</span>Als Text exportieren (Markdown)</button>
+    </div>
+    <div class="sheet-grp">
+      <button class="sheet-btn" data-x="tips"><span class="em">💡</span>Ideen &amp; Tipps zur Nutzung</button>
+    </div>
+    <button class="sheet-close">Schließen</button>`);
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+  $$("#vseg button",sheetPanel).forEach(b=>b.onclick=()=>{ state.settings.view=b.dataset.v; save(); render(); closeSheet(); });
+  $$("[data-x]",sheetPanel).forEach(b=>b.onclick=()=>{
+    const x=b.dataset.x;
+    if(x==="theme"){ state.settings.theme = state.settings.theme==="dark"?"light":"dark"; save(); render(); closeSheet(); }
+    else if(x==="groups"){ groupManageSheet(); }
+    else if(x==="drills"){ drillManageSheet(); }
+    else if(x==="lib"){ closeSheet(); refreshLib(); }
+    else if(x==="tpl"){ templateSheet(); }
+    else if(x==="cloud"){ cloudSheet(); }
+    else if(x==="exp"){ exportJSON(); }
+    else if(x==="imp"){ importJSON(); }
+    else if(x==="md"){ exportMarkdown(); }
+    else if(x==="tips"){ tipsSheet(); }
+  });
+}
+
+function tipsSheet(){
+  openSheet(`
+    <h2>So holst du mehr raus</h2>
+    <div class="tips">
+      <b>Was aus Google Notizen bleibt</b>
+      <ul>
+        <li>Angepinnte Notizen für <b>Ideen</b> und <b>Teilnehmer</b> – oben, immer sichtbar.</li>
+        <li>Jede Stunde = eine Karte mit <b>Datum als Überschrift</b> und Bullet-Points.</li>
+        <li>Sofort lostippen, alles speichert automatisch.</li>
+      </ul>
+      <b>Was hier besser ist</b>
+      <ul>
+        <li><b>Tennis / Kondition getrennt</b> – Umschalter oben, nichts vermischt sich.</li>
+        <li><b>Stunden</b> (die Chip-Leiste): deine eigenen Trainings-Slots. Frei benennen, per „＋ Stunde“ jederzeit erweitern, per ✏︎ ordnen/löschen. Im Winter einfach neue anlegen.</li>
+        <li><b>Punkte abhaken</b> statt Text durchstreichen – Fortschritt sichtbar (4/9).</li>
+        <li><b>Vorlagen</b>: neue Einheit startet mit Aufwärmen/Technik/Taktik/Spielformen/Ausklang.</li>
+        <li><b>„Offene Punkte übernehmen“</b>: nicht Erledigtes wandert automatisch in die nächste Einheit <i>derselben Stunde</i>.</li>
+        <li><b>Nachbesprechung</b> pro Einheit + <b>Sprachmemo</b> direkt nach dem Training – vor der nächsten Stunde hörst du rein.</li>
+        <li><b>Auto-Transkript</b>: während der Aufnahme wird (wo möglich) mitgeschrieben. Unter jedem Memo ein editierbares Textfeld – auch manuell nutzbar.</li>
+        <li><b>Anwesenheit</b>: bei einer Einheit mit Stunde die Namen antippen. Kader &amp; Quote in „Stunden verwalten → Termin &amp; Kader“.</li>
+        <li><b>Wochenplan</b> (Menü → 🗓️ Woche): Stunden mit festem Wochentag+Uhrzeit, nach nächstem Termin sortiert, Einheit mit einem Tap anlegen.</li>
+        <li><b>Zielzonen-Skizze</b> am Punkt (📐): Platz von oben, Zonen + Ballwege einzeichnen – kommt auch mit Übungen aus der Sammlung.</li>
+        <li><b>Schwerpunkte</b> je Einheit (Feld unter dem Titel): erscheinen als ＃-Filter über den Karten.</li>
+        <li><b>Minuten je Punkt</b>: kleines Feld rechts am Punkt, oben steht die geplante Gesamtdauer.</li>
+        <li><b>Offen-Zähler</b> auf dem Stunden-Chip: so viele Punkte waren in der letzten Einheit noch offen.</li>
+        <li><b>📚 aus Sammlung</b>: zieht Übungen und ganze Stunden-Bausteine aus der geteilten Übungssammlung (zweite App) – Einzelübung als Punkt, Baustein als Block oder neue Einheit.</li>
+        <li><b>Vorlage pro Stunde</b>: in „Stunden verwalten“ → „Vorlage“ ein eigenes Startgerüst nur für diese Stunde.</li>
+        <li><b>Übungskatalog (lokal)</b>: eigene Drills, nur auf diesem Gerät bzw. im Cloud-Sync.</li>
+        <li><b>Verlauf-Ansicht</b>: schnell durch alte Stunden scrollen.</li>
+        <li><b>Cloud-Sync</b> (☁️ im Menü): Handy und Mac über dein GitHub-Repo abgleichen, inkl. Sprachmemos und Konflikt-Log.</li>
+        <li><b>Backup als Datei</b>: zusätzlich, unabhängig vom Browser.</li>
+      </ul>
+      <b>Weitere Ideen</b>
+      <ul>
+        <li>Nach dem Training 30 Sek. Memo sprechen: „Was lief, was nächstes Mal.“</li>
+        <li>Ideen-Notiz als Sammelbecken – per „💡 aus Ideen“ in die Planung ziehen.</li>
+        <li>Stunden-Namen mit Uhrzeit + Gruppe (z. B. „Mi 17:00 Aufbaugruppe“) – dann ist die Chip-Leiste dein Wochenplan.</li>
+        <li>Intensität in die Notiz (locker / normal / hart) für die Belastungssteuerung.</li>
+        <li>Am Saisonende alte Stunden per ✏︎ löschen (Einheiten bleiben im Verlauf) und die Winter-Stunden neu anlegen.</li>
+      </ul>
+    </div>
+    <button class="sheet-close">Schließen</button>`);
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+
+/* ---------- Drill-Katalog ---------- */
+function drillPickList(area, onPick, manage){
+  let tag = "alle";
+  const host = document.createElement("div");
+  function draw(){
+    const tags = ["alle", ...new Set(state.drills.filter(d=>area==="alle"||d.area===area).flatMap(d=>d.tags||[]))];
+    host.innerHTML = `<div class="tagbar">${tags.map(t=>`<button data-t="${esc(t)}" class="${t===tag?"on":""}">${esc(t)}</button>`).join("")}</div>
+      ${manage?`<div class="mini-form">
+        <input id="nfName" placeholder="Übungsname">
+        <input id="nfTags" placeholder="Tags, mit Komma">
+        <input id="nfNote" placeholder="Kurzbeschreibung (optional)">
+        <button id="nfAdd">＋ Übung hinzufügen</button></div>`:""}
+      <div id="dlist"></div>`;
+    $$(".tagbar button",host).forEach(b=>b.onclick=()=>{ tag=b.dataset.t; draw(); });
+    const dl=$("#dlist",host);
+    const items = state.drills.filter(d=>(area==="alle"||d.area===area) && (tag==="alle"||(d.tags||[]).includes(tag)));
+    if(!items.length) dl.innerHTML=`<div style="color:var(--faint);font-size:13px;padding:8px">Noch keine Übungen.</div>`;
+    items.forEach(d=>{
+      const row=document.createElement("div"); row.className="pick";
+      row.innerHTML=`${onPick?'<button class="p-add">＋</button>':""}
+        <div class="p-main"><div>${esc(d.name)}</div>
+        ${d.note?`<div class="p-tags">${esc(d.note)}</div>`:""}
+        <div class="p-tags">${(d.tags||[]).map(esc).join(" · ")}${manage?' · '+(d.area==="tennis"?"Tennis":"Kondition"):""}</div></div>
+        ${manage?'<button class="p-add" style="color:var(--faint)">✕</button>':""}`;
+      if(onPick) $(".p-add",row).onclick=()=>onPick(d);
+      if(manage) row.querySelectorAll(".p-add")[onPick?1:0].onclick=()=>{ // letzter Button = löschen
+        if(confirm("Übung löschen?")){ state.tomb.drill[d.id]=Date.now(); state.drills=state.drills.filter(x=>x.id!==d.id); save(); draw(); }
+      };
+      dl.appendChild(row);
+    });
+    if(manage){
+      $("#nfAdd",host).onclick=()=>{
+        const name=$("#nfName",host).value.trim(); if(!name) return;
+        const ar = area==="alle" ? "tennis" : area;
+        state.drills.push({id:uid(),area:ar,name,
+          tags:$("#nfTags",host).value.split(",").map(s=>s.trim()).filter(Boolean),
+          note:$("#nfNote",host).value.trim()});
+        save(); draw();
+      };
+    }
+  }
+  draw();
+  return host;
+}
+function drillManageSheet(){
+  openSheet(`<h2>Übungskatalog</h2><div class="sub">Sammle Drills und Übungen. In der Einheit über „＋ aus Katalog“ einfügen.</div><div id="dhost"></div><button class="sheet-close">Schließen</button>`);
+  $("#dhost",sheetPanel).appendChild(drillPickList(state.settings.area,null,true));
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+function openDrillPick(s){
+  openSheet(`<h2>Übung einfügen</h2><div class="sub">Tippe auf ＋ – die Übung wird als Punkt hinzugefügt.</div><div id="dhost"></div><button class="sheet-close">Fertig</button>`);
+  $("#dhost",sheetPanel).appendChild(drillPickList(s.area,(d)=>{
+    s.items.push({id:uid(),text:d.name+(d.note?" – "+d.note:""),done:false,group:"Aus Katalog"});
+    touch(s); save(); render(); toast("„"+d.name+"“ hinzugefügt");
+  },false));
+  $(".sheet-close",sheetPanel).onclick=()=>{ closeSheet(); };
+}
+function openIdeaPick(s){
+  const pin = state.pins.find(p=>p.area===s.area && /idee/i.test(p.title));
+  const lines = pin ? pin.body.split("\n").map(l=>l.replace(/^[-*•\s]+/,"").trim()).filter(Boolean) : [];
+  openSheet(`<h2>Aus „Ideen“ übernehmen</h2>
+    <div class="sub">${pin?"Tippe eine Idee an, um sie als Punkt einzufügen.":"Keine Ideen-Notiz für diesen Bereich gefunden."}</div>
+    <div id="ilist"></div><button class="sheet-close">Fertig</button>`);
+  const il=$("#ilist",sheetPanel);
+  lines.forEach(t=>{
+    const r=document.createElement("div"); r.className="pick";
+    r.innerHTML=`<button class="p-add">＋</button><div class="p-main">${esc(t)}</div>`;
+    r.querySelector(".p-add").onclick=()=>{
+      s.items.push({id:uid(),text:t,done:false,group:"Aus Ideen"});
+      touch(s); save(); render(); toast("Idee übernommen");
+    };
+    il.appendChild(r);
+  });
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+
+/* ---------- Vorlagen bearbeiten ---------- */
+function tplToText(arr){ return (arr||[]).map(g=>["Gruppe: "+g.group, ...(g.items||[])].join("\n")).join("\n"); }
+function textToTpl(txt){
+  const out=[]; let cur=null;
+  txt.split("\n").forEach(line=>{
+    const m=line.match(/^\s*Gruppe:\s*(.+)$/i);
+    if(m){ cur={group:m[1].trim(),items:[]}; out.push(cur); }
+    else if(cur){ cur.items.push(line.trim()); }
+    else if(line.trim()){ cur={group:"Allgemein",items:[line.trim()]}; out.push(cur); }
+  });
+  return out;
+}
+function templateSheet(){
+  openSheet(`<h2>Vorlagen</h2>
+    <div class="sub">Zeilen mit <b>Gruppe:</b> starten einen Abschnitt, andere Zeilen sind Punkte. Wird bei „Vorlage“ als Startgerüst genutzt.</div>
+    <div class="blk-label">🎾 Tennis</div>
+    <textarea class="big" id="tplT"></textarea>
+    <div class="blk-label">💪 Kondition</div>
+    <textarea class="big" id="tplK"></textarea>
+    <button class="sheet-btn" id="tplSave" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">Speichern</button>
+    <button class="sheet-btn" id="tplReset" style="justify-content:center">Auf Standard zurücksetzen</button>
+    <button class="sheet-close">Abbrechen</button>`);
+  $("#tplT",sheetPanel).value = tplToText(state.templates.tennis);
+  $("#tplK",sheetPanel).value = tplToText(state.templates.kondition);
+  $("#tplSave",sheetPanel).onclick=()=>{
+    state.templates.tennis = textToTpl($("#tplT",sheetPanel).value);
+    state.templates.kondition = textToTpl($("#tplK",sheetPanel).value);
+    state.templatesUpdatedAt = Date.now();
+    save(); toast("Vorlagen gespeichert"); closeSheet();
+  };
+  $("#tplReset",sheetPanel).onclick=()=>{
+    if(!confirm("Beide Vorlagen auf Standard zurücksetzen?")) return;
+    state.templates = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    state.templatesUpdatedAt = Date.now();
+    save(); templateSheet();
+  };
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+
+/* ---------- Stunden / Gruppen ---------- */
+function addGroupSheet(){
+  const defArea = state.settings.area==="kondition" ? "kondition" : "tennis";
+  openSheet(`
+    <h2>Neue Stunde</h2>
+    <div class="sub">Deine eigenen Trainings-Slots – benenne sie frei (z. B. „Di 17:30 Herren“, „Kids Mi“, „Athletik A“).</div>
+    <div class="mini-form">
+      <label class="tiny">Name</label>
+      <input id="ngName" placeholder="z. B. Mo 16:00 Aufbaugruppe" autocomplete="off">
+      <label class="tiny">Bereich</label>
+      <select id="ngArea">
+        <option value="tennis"${defArea==="tennis"?" selected":""}>🎾 Tennis</option>
+        <option value="kondition"${defArea==="kondition"?" selected":""}>💪 Kondition</option>
+      </select>
+      <button id="ngAdd">Stunde anlegen</button>
+    </div>
+    <button class="sheet-close">Abbrechen</button>`);
+  const go=()=>{
+    const name=$("#ngName",sheetPanel).value.trim(); if(!name) return;
+    const area=$("#ngArea",sheetPanel).value;
+    const g={id:uid(),name,area,order:(Math.max(-1,...state.groups.map(x=>x.order??0))+1),updatedAt:Date.now()};
+    state.groups.push(g);
+    state.settings.group=g.id;
+    if(state.settings.area!=="alle" && state.settings.area!==area) state.settings.area=area;
+    save(); render(); closeSheet(); toast("Stunde „"+name+"“ angelegt");
+  };
+  $("#ngAdd",sheetPanel).onclick=go;
+  $("#ngName",sheetPanel).onkeydown=e=>{ if(e.key==="Enter") go(); };
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+  requestAnimationFrame(()=>$("#ngName",sheetPanel).focus());
+}
+
+function groupManageSheet(){
+  const rows = state.groups.slice().sort((x,y)=>(x.order??0)-(y.order??0))
+    .map(g=>{
+      const n = state.sessions.filter(s=>s.groupId===g.id).length;
+      return `<div class="pick" data-id="${g.id}">
+        <div class="p-main">
+          <input class="gm-name" value="${esc(g.name)}" style="width:100%;background:none;border:0;font-size:14px;font-weight:600">
+          <div class="p-tags"><select class="gm-area">
+            <option value="tennis"${g.area==="tennis"?" selected":""}>🎾 Tennis</option>
+            <option value="kondition"${g.area==="kondition"?" selected":""}>💪 Kondition</option>
+          </select> · ${n} Einheit(en)${g.weekday!=null?" · "+WEEKDAYS[g.weekday]+(g.time?" "+g.time:""):""}<br>
+          <a class="gm-tpl" style="color:var(--accent)">Vorlage${g.template&&g.template.length?" ✓":""}</a> · <a class="gm-more" style="color:var(--accent)">Termin &amp; Kader${(g.roster||[]).length?" ("+g.roster.length+")":""}</a></div>
+        </div>
+        <button class="p-add gm-up" style="color:var(--faint)">▲</button>
+        <button class="p-add gm-dn" style="color:var(--faint)">▼</button>
+        <button class="p-add gm-del" style="color:var(--faint)">✕</button>
+      </div>`;
+    }).join("");
+  openSheet(`
+    <h2>Stunden verwalten</h2>
+    <div class="sub">Umbenennen, Bereich ändern, Reihenfolge setzen. Beim Löschen bleiben die Einheiten erhalten – sie stehen dann unter „ohne Stunde“.</div>
+    ${rows||'<div class="cf-status">Noch keine Stunden.</div>'}
+    <button class="sheet-btn" id="gmAdd" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">＋ Neue Stunde</button>
+    <button class="sheet-close">Fertig</button>`);
+  const commit=(rerender)=>{ save(); render(); if(rerender) groupManageSheet(); };
+  $$(".pick",sheetPanel).forEach(row=>{
+    const id=row.dataset.id, g=state.groups.find(x=>x.id===id);
+    $(".gm-name",row).oninput=e=>{ g.name=e.target.value; g.updatedAt=Date.now(); saveSoft(); };
+    $(".gm-name",row).onblur=()=>commit(false);
+    $(".gm-area",row).onchange=e=>{ g.area=e.target.value; g.updatedAt=Date.now(); commit(true); };
+    $(".gm-tpl",row).onclick=()=>groupTemplateSheet(g);
+    $(".gm-more",row).onclick=()=>groupExtrasSheet(g);
+    $(".gm-up",row).onclick=()=>{ reorderGroup(id,-1); commit(true); };
+    $(".gm-dn",row).onclick=()=>{ reorderGroup(id, 1); commit(true); };
+    $(".gm-del",row).onclick=()=>{
+      if(!confirm("Stunde „"+g.name+"“ löschen? Einheiten bleiben erhalten.")) return;
+      state.tomb.group[id]=Date.now();
+      state.groups=state.groups.filter(x=>x.id!==id);
+      if(state.settings.group===id) state.settings.group="alle";
+      commit(true);
+    };
+  });
+  $("#gmAdd",sheetPanel).onclick=addGroupSheet;
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+function attendQuote(gid, pid){
+  const ss = state.sessions.filter(s=>s.groupId===gid);
+  const was = ss.filter(s=>s.attend && s.attend[pid]).length;
+  return was + "/" + ss.length;
+}
+function groupExtrasSheet(g){
+  g.roster = g.roster || [];
+  openSheet(`<h2>${esc(g.name)}</h2>
+    <div class="field"><label>Fester Wochentag</label><select id="gxW">
+      <option value="">— kein fester Termin —</option>
+      ${WEEKDAYS.map((d,i)=>`<option value="${i}"${g.weekday===i?" selected":""}>${d}</option>`).join("")}
+    </select></div>
+    <div class="field"><label>Uhrzeit</label><input id="gxT" type="time" value="${esc(g.time||"")}"></div>
+    <div class="blk-label">Kader</div>
+    <div id="gxRoster"></div>
+    <button class="sheet-btn" id="gxAdd" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">＋ Person</button>
+    <button class="sheet-close">Fertig</button>`);
+  $("#gxW",sheetPanel).onchange=e=>{ g.weekday = e.target.value===""?undefined:+e.target.value; g.updatedAt=Date.now(); save(); render(); };
+  $("#gxT",sheetPanel).onchange=e=>{ g.time = e.target.value||undefined; g.updatedAt=Date.now(); save(); render(); };
+  const draw=()=>{
+    const host=$("#gxRoster",sheetPanel); host.innerHTML="";
+    if(!g.roster.length) host.innerHTML='<div class="cf-status">Noch niemand im Kader.</div>';
+    g.roster.forEach((p,idx)=>{
+      const row=document.createElement("div"); row.className="pick";
+      row.innerHTML=`<input class="rn" value="${esc(p.name)}" style="flex:1;background:none;border:0;font-size:14px;font-weight:600">
+        <span class="p-tags" style="margin:0 6px">war bei ${attendQuote(g.id,p.id)}</span>
+        <button class="p-add" style="color:var(--faint)">✕</button>`;
+      $(".rn",row).oninput=e=>{ p.name=e.target.value; g.updatedAt=Date.now(); saveSoft(); };
+      $(".p-add",row).onclick=()=>{ if(!confirm("„"+p.name+"“ aus dem Kader nehmen? (Anwesenheits-Häkchen bleiben)")) return;
+        g.roster.splice(idx,1); g.updatedAt=Date.now(); save(); render(); draw(); };
+      host.appendChild(row);
+    });
+  };
+  draw();
+  $("#gxAdd",sheetPanel).onclick=()=>{ const n=prompt("Name:"); if(!n||!n.trim())return;
+    g.roster.push({id:uid(),name:n.trim()}); g.updatedAt=Date.now(); save(); render(); draw(); };
+  $(".sheet-close",sheetPanel).onclick=()=>{ closeSheet(); groupManageSheet(); };
+}
+function reorderGroup(id,dir){
+  const sorted = state.groups.slice().sort((x,y)=>(x.order??0)-(y.order??0));
+  const i = sorted.findIndex(g=>g.id===id), j=i+dir;
+  if(i<0||j<0||j>=sorted.length) return;
+  [sorted[i],sorted[j]]=[sorted[j],sorted[i]];
+  sorted.forEach((g,k)=>{ g.order=k; g.updatedAt=Date.now(); });
+}
+function groupTemplateSheet(g){
+  openSheet(`<h2>Vorlage: ${esc(g.name)}</h2>
+    <div class="sub">Eigenes Startgerüst nur für diese Stunde. Zeilen mit <b>Gruppe:</b> starten einen Block, andere Zeilen sind Punkte. Leer lassen = keine eigene Vorlage (dann greift die Bereichsvorlage).</div>
+    <textarea class="big" id="gtpl" placeholder="Gruppe: Aufwärmen&#10;Einlaufen&#10;Gruppe: Hauptteil&#10;…"></textarea>
+    <button class="sheet-btn" id="gtSave" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">Speichern</button>
+    <button class="sheet-btn" id="gtClear" style="justify-content:center">Vorlage entfernen</button>
+    <button class="sheet-close">Abbrechen</button>`);
+  $("#gtpl",sheetPanel).value = g.template ? tplToText(g.template) : "";
+  $("#gtSave",sheetPanel).onclick=()=>{
+    const t = textToTpl($("#gtpl",sheetPanel).value).filter(x=>x.items.some(i=>i.trim())||x.group);
+    g.template = t.length ? t : null;
+    g.updatedAt = Date.now();
+    save(); toast(g.template?"Stunden-Vorlage gespeichert":"Vorlage geleert"); closeSheet(); groupManageSheet();
+  };
+  $("#gtClear",sheetPanel).onclick=()=>{ g.template=null; g.updatedAt=Date.now(); save(); closeSheet(); groupManageSheet(); };
+  $(".sheet-close",sheetPanel).onclick=()=>{ closeSheet(); groupManageSheet(); };
+}
+
+/* ---------- Neue-Einheit-Sheet ---------- */
+function newSessionSheet(){
+  const a = state.settings.area;
+  const preGid = (()=>{ const g=state.groups.find(x=>x.id===state.settings.group); return g?g.id:""; })();
+  const opts = grp=>state.groups.filter(x=>x.area===grp).sort((x,y)=>(x.order??0)-(y.order??0))
+    .map(x=>`<option value="${x.id}"${x.id===preGid?" selected":""}>${esc(x.name)}</option>`).join("");
+  openSheet(`
+    <h2>Neue Einheit</h2>
+    <div class="sub">Datum ist heute – im Editor änderbar.</div>
+    <div class="mini-form">
+      <label class="tiny">Stunde</label>
+      <select id="nsGroup">
+        <option value="">— ohne Stunde —</option>
+        <optgroup label="🎾 Tennis">${opts("tennis")}</optgroup>
+        <optgroup label="💪 Kondition">${opts("kondition")}</optgroup>
+      </select>
+    </div>
+    <div class="toggle-row"><input type="checkbox" id="coChk" ${state.settings.carryOver?"checked":""}>
+      <label for="coChk">Offene Punkte aus der letzten Einheit derselben Stunde übernehmen</label></div>
+    <button class="sheet-btn hidden" id="nsGroupTpl" style="justify-content:center;color:var(--accent);border-color:var(--accent)"></button>
+    <div class="sheet-grp">
+      <button class="sheet-btn" data-n="tennis|1"><span class="em">🎾</span>Tennis – mit Vorlage<small>Aufwärmen · Technik · Taktik · Spielformen · Ausklang</small></button>
+      <button class="sheet-btn" data-n="tennis|0"><span class="em">🎾</span>Tennis – leer</button>
+      <button class="sheet-btn" data-n="kondition|1"><span class="em">💪</span>Kondition – mit Vorlage<small>Mobilisation · Aktivierung · Hauptteil · Core · Cool-down</small></button>
+      <button class="sheet-btn" data-n="kondition|0"><span class="em">💪</span>Kondition – leer</button>
+    </div>
+    <button class="sheet-close">Abbrechen</button>`);
+  $("#coChk",sheetPanel).onchange=e=>{ state.settings.carryOver=e.target.checked; save(); };
+  const start=(area,src,gid)=>{
+    closeSheet();
+    if(state.settings.area!=="alle" && state.settings.area!==area) state.settings.area=area;
+    if(gid) state.settings.group = gid;
+    newSession(area, src, gid);
+  };
+  const dim = ()=>{
+    const g=state.groups.find(x=>x.id===$("#nsGroup",sheetPanel).value);
+    $$("[data-n]",sheetPanel).forEach(b=>{
+      const ba=b.dataset.n.split("|")[0];
+      b.style.opacity = g ? (ba===g.area?"1":".4") : ((a==="tennis"||a==="kondition") && ba!==a ? ".5":"1");
+    });
+    const gt=$("#nsGroupTpl",sheetPanel);
+    if(g && g.template && g.template.length){
+      gt.classList.remove("hidden");
+      gt.textContent = "🧩 Vorlage der Stunde „"+g.name+"“";
+      gt.onclick=()=>start(g.area,"group",g.id);
+    } else gt.classList.add("hidden");
+  };
+  $("#nsGroup",sheetPanel).onchange=dim; dim();
+  $$("[data-n]",sheetPanel).forEach(b=>b.onclick=()=>{
+    const [area,tpl]=b.dataset.n.split("|");
+    const selG = state.groups.find(x=>x.id===$("#nsGroup",sheetPanel).value);
+    const gid = selG && selG.area===area ? selG.id : null;
+    start(area, tpl==="1" ? "area" : null, gid);
+  });
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+
+/* ---------- Export / Import ---------- */
+async function exportJSON(){
+  toast("Backup wird erstellt…");
+  const audio={};
+  try{
+    const keys=await idbKeys();
+    for(const k of keys){ const b=await idbGet(k); if(b) audio[k]=await blobToDataURL(b); }
+  }catch(e){ console.warn(e); }
+  const payload={app:"trainingsbuch",exportedAt:new Date().toISOString(),state,audio};
+  downloadBlob(new Blob([JSON.stringify(payload)],{type:"application/json"}),
+    "trainingsbuch-"+todayISO()+".json");
+  closeSheet();
+}
+function importJSON(){
+  const inp=document.createElement("input"); inp.type="file"; inp.accept="application/json,.json";
+  inp.onchange=async()=>{
+    const f=inp.files[0]; if(!f) return;
+    try{
+      const data=JSON.parse(await f.text());
+      const incoming = data.state || data;
+      if(!incoming.sessions && !incoming.pins) throw new Error("Format");
+      if(!confirm("Backup laden? Der aktuelle Stand auf diesem Gerät wird ersetzt.")) return;
+      if(data.audio){ for(const [k,d] of Object.entries(data.audio)){ try{ await idbPut(k, await dataURLToBlob(d)); }catch(e){} } }
+      state = ensure(incoming); openIds.clear(); save(); render(); closeSheet();
+      toast("Backup geladen");
+    }catch(e){ alert("Datei konnte nicht gelesen werden."); }
+  };
+  inp.click();
+}
+function exportMarkdown(){
+  const L=[]; L.push("# Trainingsbuch — "+todayISO(),"");
+  const sessBlock = (s)=>{
+    L.push("#### "+fmtDate(s.date)+(s.title?" — "+s.title:"")+(s.status==="done"?"  ✅":""));
+    const planMin=s.items.reduce((n,i)=>n+(+i.min||0),0);
+    const meta=[s.place,(planMin||s.durationMin)&&((planMin||s.durationMin)+" min"),s.participants&&s.participants+" TN",(s.tags||[]).length&&"＃"+s.tags.join(" ＃")].filter(Boolean).join(" · ");
+    if(meta) L.push("_"+meta+"_");
+    const grp = state.groups.find(x=>x.id===s.groupId);
+    if(grp && (grp.roster||[]).length && Object.keys(s.attend||{}).length){
+      const da = grp.roster.filter(p=>s.attend[p.id]).map(p=>p.name);
+      const fehlt = grp.roster.filter(p=>!s.attend[p.id]).map(p=>p.name);
+      L.push("", "👥 da: "+da.join(", ")+(fehlt.length?"  ·  fehlt: "+fehlt.join(", "):""));
+    }
+    let g=null;
+    s.items.forEach(i=>{ if((i.group||"")!==(g||"")&&i.group){ L.push("","**"+i.group+"**"); g=i.group; }
+      L.push("- ["+(i.done?"x":" ")+"] "+i.text+(i.min?" ("+i.min+"′)":"")+(i.court&&i.court.els&&i.court.els.length?" 📐":"")); });
+    if(s.note) L.push("", s.note);
+    if(s.reflection) L.push("", "> Nachbesprechung: "+s.reflection);
+    s.memos.forEach(m=>{ if(m.transcript) L.push("", "🎤 „"+m.transcript+"“"); });
+    if(s.memos.length && !s.memos.some(m=>m.transcript)) L.push("", "🎤 "+s.memos.length+" Sprachmemo(s)");
+    L.push("");
+  };
+  for(const area of ["tennis","kondition"]){
+    L.push("## "+(area==="tennis"?"🎾 Tennis":"💪 Kondition"),"");
+    state.pins.filter(p=>p.area===area).forEach(p=>{ L.push("### 📌 "+p.title, p.body||"", ""); });
+    const buckets = groupsForArea(area).map(g=>({name:g.name,id:g.id}));
+    buckets.push({name:"Ohne Stunde",id:null});
+    buckets.forEach(bk=>{
+      const ss=state.sessions.filter(s=>s.area===area && (s.groupId||null)===bk.id)
+        .sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+      if(!ss.length) return;
+      L.push("### "+bk.name,"");
+      ss.forEach(sessBlock);
+    });
+  }
+  downloadBlob(new Blob([L.join("\n")],{type:"text/markdown"}), "trainingsbuch-"+todayISO()+".md");
+  closeSheet();
+}
+function downloadBlob(blob,name){
+  const u=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },500);
+  toast("Datei „"+name+"“ erstellt");
+}
+
+/* ============================================================
+   Cloud-Sync über GitHub  (Handy <-> Mac)
+   Ein JSON im Repo ist die gemeinsame Wahrheit. Beim Abgleich
+   wird pro Eintrag (Pin / Einheit / Übung / Stunde) der neuere
+   Stand behalten – nichts wird komplett überschrieben.
+   Gelöschtes bleibt 90 Tage als Tombstone vermerkt, damit es
+   nicht vom anderen Gerät „wiederaufersteht“.
+   Sprachmemos wandern als einzelne Dateien unter audio/<id> mit.
+   ============================================================ */
+const CFG = {
+  on:    ()=>localStorage.getItem("tb_cloud_on")==="1",
+  tok:   ()=>localStorage.getItem("tb_gh_tok")||"",
+  user:  ()=>localStorage.getItem("tb_gh_user")||"mattiknp",
+  repo:  ()=>localStorage.getItem("tb_gh_repo")||"routine-tracker",
+  branch:()=>localStorage.getItem("tb_gh_branch")||"main",
+  file:  ()=>localStorage.getItem("tb_gh_file")||"trainingsbuch.json",
+  audio: ()=>localStorage.getItem("tb_cloud_audio")!=="0",
+  auto:  ()=>localStorage.getItem("tb_cloud_auto")!=="0",
+  // Übungssammlung (nur lesend) – standardmäßig dasselbe Repo, umstellbar
+  libUser:  ()=>localStorage.getItem("tb_lib_user")||localStorage.getItem("tb_gh_user")||"mattiknp",
+  libRepo:  ()=>localStorage.getItem("tb_lib_repo")||localStorage.getItem("tb_gh_repo")||"routine-tracker",
+  libBranch:()=>localStorage.getItem("tb_lib_branch")||localStorage.getItem("tb_gh_branch")||"main",
+  libFile:  ()=>localStorage.getItem("tb_lib_file")||"uebungssammlung.json",
+};
+function cfgSet(k,v){ localStorage.setItem(k,v); }
+
+const b64enc = s => btoa(unescape(encodeURIComponent(s)));
+const b64dec = s => decodeURIComponent(escape(atob(String(s).replace(/\s/g,""))));
+function ghHead(){ return {Authorization:"token "+CFG.tok(), Accept:"application/vnd.github+json"}; }
+function ghUrl(path){ return "https://api.github.com/repos/"+CFG.user()+"/"+CFG.repo()+"/contents/"+path.split("/").map(encodeURIComponent).join("/"); }
+async function ghGetAt(user,repo,branch,path){
+  const url = "https://api.github.com/repos/"+user+"/"+repo+"/contents/"+path.split("/").map(encodeURIComponent).join("/")
+    +"?ref="+encodeURIComponent(branch)+"&t="+Date.now();
+  const headers = { Accept:"application/vnd.github+json" };
+  if(CFG.tok()) headers.Authorization = "token "+CFG.tok();
+  const r = await fetch(url, {headers, cache:"no-store"});
+  if(r.status===404) return null;
+  if(r.status===401||r.status===403) throw new Error("Token abgelehnt ("+r.status+")");
+  if(!r.ok) throw new Error("GitHub "+r.status);
+  return r.json();
+}
+async function ghGet(path){ return ghGetAt(CFG.user(), CFG.repo(), CFG.branch(), path); }
+async function ghPut(path,b64,sha,msg){
+  const body={message:msg||("trainingsbuch "+new Date().toISOString()), content:b64, branch:CFG.branch()};
+  if(sha) body.sha=sha;
+  const r=await fetch(ghUrl(path),{method:"PUT",headers:{...ghHead(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(r.status===409){ const e=new Error("conflict"); e.conflict=true; throw e; }
+  if(!r.ok) throw new Error("GitHub "+r.status+" (schreiben)");
+  return r.json();
+}
+async function ghDel(path,sha,msg){
+  const r=await fetch(ghUrl(path),{method:"DELETE",headers:{...ghHead(),"Content-Type":"application/json"},
+    body:JSON.stringify({message:msg||("del "+path),sha,branch:CFG.branch()})});
+  return r.ok;
+}
+
+/* ---- Merge ---- */
+function pruneTomb(t){
+  const cut=Date.now()-90*864e5;
+  for(const g of Object.values(t)) for(const id of Object.keys(g)) if(g[id]<cut) delete g[id];
+  return t;
+}
+function mergeTomb(a={},b={}){
+  const out={pin:{},session:{},drill:{},memo:{},group:{}};
+  for(const g of Object.keys(out)){
+    const m={...(a[g]||{})};
+    for(const [id,ts] of Object.entries(b[g]||{})) m[id]=Math.max(ts,m[id]||0);
+    out[g]=m;
+  }
+  return out;
+}
+function mergeList(a=[],b=[],tomb={}){
+  const m=new Map();
+  for(const x of [...a,...b]){ const p=m.get(x.id); if(!p || (x.updatedAt||0) > (p.updatedAt||0)) m.set(x.id,x); }
+  for(const [id,ts] of Object.entries(tomb)){ const e=m.get(id); if(e && (e.updatedAt||0) <= ts) m.delete(id); }
+  return [...m.values()];
+}
+function mergeSessions(a=[],b=[],tomb){
+  const m=new Map();
+  for(const x of [...a,...b]){
+    const p=m.get(x.id);
+    if(!p){ m.set(x.id,{...x,memos:[...(x.memos||[])]}); continue; }
+    const newer=(x.updatedAt||0) > (p.updatedAt||0) ? x : p;
+    const mem=new Map();
+    for(const mm of [...(p.memos||[]),...(x.memos||[])]){
+      const q=mem.get(mm.id);
+      if(!q || (mm.synced&&!q.synced) || (mm.mLabelAt||0)>(q.mLabelAt||0) || (mm.mTransAt||0)>(q.mTransAt||0)) mem.set(mm.id,mm);
+    }
+    m.set(x.id,{...newer, memos:[...mem.values()].filter(mm=>!(tomb.memo&&tomb.memo[mm.id]))});
+  }
+  for(const [id,ts] of Object.entries(tomb.session||{})){ const e=m.get(id); if(e && (e.updatedAt||0) <= ts) m.delete(id); }
+  return [...m.values()];
+}
+function mergeState(local, remote){
+  const tomb = pruneTomb(mergeTomb(local.tomb, remote.tomb));
+  const tplRemoteNewer = (remote.templatesUpdatedAt||0) > (local.templatesUpdatedAt||0);
+  return ensure({
+    v:2,
+    settings: local.settings,
+    groups:   mergeList(local.groups, remote.groups, tomb.group),
+    pins:     mergeList(local.pins, remote.pins, tomb.pin),
+    drills:   mergeList(local.drills, remote.drills, tomb.drill),
+    sessions: mergeSessions(local.sessions, remote.sessions, tomb),
+    templates: tplRemoteNewer ? remote.templates : local.templates,
+    templatesUpdatedAt: Math.max(local.templatesUpdatedAt||0, remote.templatesUpdatedAt||0),
+    tomb
+  });
+}
+function stripForCloud(s){ const {settings, ...rest}=s; return rest; }
+
+/* ---- Konflikt-/Abgleich-Log ---- */
+function snapIds(st){
+  const m=new Map();
+  ["pins","drills","groups","sessions"].forEach(k=>(st[k]||[]).forEach(x=>m.set(k+":"+x.id, x.updatedAt||0)));
+  return m;
+}
+function diffSnap(before, after){
+  let neu=0, upd=0, del=0;
+  for(const [k,ts] of after){ if(!before.has(k)) neu++; else if(ts > before.get(k)) upd++; }
+  for(const k of before.keys()) if(!after.has(k)) del++;
+  return {neu, upd, del};
+}
+function pushSyncLog(entry){
+  let log=[]; try{ log=JSON.parse(localStorage.getItem("tb_sync_log")||"[]"); }catch(e){}
+  log.unshift(entry); log=log.slice(0,20);
+  localStorage.setItem("tb_sync_log", JSON.stringify(log));
+}
+
+/* ---- Ablauf ---- */
+let syncing=false, syncT=null, remoteSha=null;
+function setDot(s,txt){ const el=$("#syncDot"); if(el){ el.dataset.s=s; el.title=txt||""; } }
+function queueCloud(){
+  try{ if(!CFG.on()||!CFG.auto()) return; }catch(e){ return; }
+  clearTimeout(syncT); syncT=setTimeout(()=>syncNow(false), 3000);
+}
+async function syncNow(manual){
+  if(!CFG.on()){ if(manual) toast("Cloud-Sync ist aus"); return; }
+  if(!CFG.tok()){ if(manual) toast("Kein Token hinterlegt"); return; }
+  if(syncing) return;
+  syncing=true; setDot("busy","Gleicht ab …");
+  try{
+    let remoteObj=null;
+    const rf=await ghGet(CFG.file());
+    if(rf && rf.content){
+      try{ remoteObj=ensure(JSON.parse(b64dec(rf.content))); remoteSha=rf.sha; }catch(e){ remoteObj=null; }
+    } else if(rf){ remoteSha=rf.sha; }
+
+    if(remoteObj){
+      const before=snapIds(state);
+      state = mergeState(state, remoteObj);
+      const d=diffSnap(before, snapIds(state));
+      if(d.neu||d.upd||d.del){
+        pushSyncLog({at:Date.now(), ...d});
+        const parts=[]; if(d.neu)parts.push(d.neu+" neu"); if(d.upd)parts.push(d.upd+" geändert"); if(d.del)parts.push(d.del+" entfernt");
+        toast("Vom anderen Gerät: "+parts.join(", "));
+      }
+    }
+    save._silent=true; save(); save._silent=false;
+
+    if(CFG.audio()){ try{ await syncAudio(state); }catch(e){ console.warn("audio-sync",e); } }
+    save._silent=true; save(); save._silent=false;
+
+    const outStr = JSON.stringify(stripForCloud(state));
+    const remoteStr = remoteObj ? JSON.stringify(stripForCloud(remoteObj)) : null;
+    if(outStr !== remoteStr){
+      try{
+        const res=await ghPut(CFG.file(), b64enc(outStr), remoteSha, "trainingsbuch "+new Date().toISOString());
+        remoteSha=res.content.sha;
+      }catch(e){
+        if(e.conflict){
+          const rf2=await ghGet(CFG.file());
+          const remote2=rf2&&rf2.content?ensure(JSON.parse(b64dec(rf2.content))):null;
+          if(remote2){ state=mergeState(state,remote2); save._silent=true;save();save._silent=false; }
+          const res2=await ghPut(CFG.file(), b64enc(JSON.stringify(stripForCloud(state))), rf2&&rf2.sha, "trainingsbuch merge "+new Date().toISOString());
+          remoteSha=res2.content.sha;
+        } else throw e;
+      }
+    }
+    localStorage.setItem("tb_cloud_last", Date.now()+"");
+    setDot("ok","Synchron · "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
+    render();
+    if(manual) toast("Abgeglichen");
+  }catch(e){
+    console.warn(e); setDot("err", e.message||"Fehler");
+    if(manual) toast("Sync-Fehler: "+(e.message||e));
+  }finally{ syncing=false; }
+}
+async function syncAudio(st){
+  let localKeys;
+  try{ localKeys=new Set(await idbKeys()); }catch(e){ return; }
+  const memos = st.sessions.flatMap(s=>s.memos||[]);
+  for(const m of memos){                                   // hochladen
+    if(m.synced || !localKeys.has(m.id)) continue;
+    try{
+      const blob=await idbGet(m.id); if(!blob) continue;
+      const ext=/(mp4|aac|m4a)/.test(m.mime||"")?"m4a":"webm";
+      const b64=(await blobToDataURL(blob)).split(",")[1];
+      const ex=await ghGet("audio/"+m.id+"."+ext).catch(()=>null);
+      await ghPut("audio/"+m.id+"."+ext, b64, ex&&ex.sha, "memo "+m.id);
+      m.synced=true; m.ext=ext;
+    }catch(e){ /* nächster Sync */ }
+  }
+  for(const m of memos){                                   // herunterladen
+    if(localKeys.has(m.id)) continue;
+    const ext=m.ext||"webm";
+    try{
+      const f=await ghGet("audio/"+m.id+"."+ext);
+      if(f && f.download_url){ await idbPut(m.id, await fetch(f.download_url).then(r=>r.blob())); }
+      else if(f && f.content){ await idbPut(m.id, await dataURLToBlob("data:"+(m.mime||"audio/webm")+";base64,"+f.content.replace(/\s/g,""))); }
+    }catch(e){}
+  }
+  for(const id of Object.keys(st.tomb.memo||{})){          // löschen
+    for(const ext of ["webm","m4a"]){
+      try{ const f=await ghGet("audio/"+id+"."+ext); if(f) await ghDel("audio/"+id+"."+ext, f.sha, "memo del "+id); }catch(e){}
+    }
+  }
+}
+function cloudInit(){
+  setDot(CFG.on()?"idle":"off", CFG.on()?"Cloud-Sync bereit":"Cloud-Sync aus");
+  if(CFG.on()) syncNow(false);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden && CFG.on() && CFG.auto()) syncNow(false); });
+  window.addEventListener("online",()=>{ if(CFG.on()) syncNow(false); });
+}
+
+function cloudSheet(){
+  const last = +localStorage.getItem("tb_cloud_last")||0;
+  openSheet(`
+    <h2>Cloud-Sync · Handy ↔ Mac</h2>
+    <div class="sub">Legt <code>${esc(CFG.file())}</code> in dein GitHub-Repo und gleicht nach jeder Änderung ab. Pro Eintrag gewinnt der neuere Stand.</div>
+    <div class="mini-form">
+      <label class="tiny">GitHub-Token (Fine-grained, nur dieses Repo, Contents: Read and write)</label>
+      <input id="cfTok" type="password" autocomplete="off" placeholder="github_pat_…" value="${esc(CFG.tok())}">
+      <label class="tiny">Benutzer / Owner</label>
+      <input id="cfUser" autocomplete="off" value="${esc(CFG.user())}">
+      <label class="tiny">Repository</label>
+      <input id="cfRepo" autocomplete="off" value="${esc(CFG.repo())}">
+      <label class="tiny">Branch</label>
+      <input id="cfBranch" autocomplete="off" value="${esc(CFG.branch())}">
+      <label class="tiny">Übungssammlung – Repository (nur lesen, für „📚 aus Sammlung“)</label>
+      <input id="cfLibRepo" autocomplete="off" value="${esc(CFG.libRepo())}">
+      <label class="tiny">Übungssammlung – Datei</label>
+      <input id="cfLibFile" autocomplete="off" value="${esc(CFG.libFile())}">
+    </div>
+    <div class="toggle-row"><input type="checkbox" id="cfAudio" ${CFG.audio()?"checked":""}>
+      <label for="cfAudio">Sprachmemos mitsynchronisieren (Dateien unter <code>audio/</code>)</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cfAuto" ${CFG.auto()?"checked":""}>
+      <label for="cfAuto">Automatisch abgleichen (nach jeder Änderung &amp; beim Öffnen)</label></div>
+    <div class="sheet-grp">
+      <button class="sheet-btn" id="cfSave" style="justify-content:center;color:var(--accent);border-color:var(--accent)">Speichern &amp; einschalten</button>
+      <button class="sheet-btn" id="cfSync" style="justify-content:center">Jetzt abgleichen</button>
+      <button class="sheet-btn" id="cfOff" style="justify-content:center;color:var(--danger)">Sync ausschalten</button>
+    </div>
+    <div class="cf-status">${CFG.on()?"Status: aktiv":"Status: aus"}${last?" · zuletzt "+new Date(last).toLocaleString("de-DE"):""}</div>
+    ${syncLogHtml()}
+    <div class="tips">
+      <b>Token anlegen (einmalig)</b>
+      <ul>
+        <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token.</li>
+        <li>Repository access: <b>Only select repositories</b> → dein Repo.</li>
+        <li>Permissions → Repository → <b>Contents: Read and write</b>.</li>
+        <li>Token kopieren, oben einfügen, „Speichern & einschalten“.</li>
+        <li>Auf dem zweiten Gerät die Seite öffnen, denselben Token eintragen – fertig.</li>
+      </ul>
+      <div style="color:var(--faint)">Der Token liegt nur in diesem Browser (localStorage). Bei einem geteilten Gerät besser ein privates Repo und ein Token nur mit Contents-Recht.</div>
+    </div>
+    <button class="sheet-close">Schließen</button>`);
+  $("#cfSave",sheetPanel).onclick=()=>{
+    cfgSet("tb_gh_tok",$("#cfTok",sheetPanel).value.trim());
+    cfgSet("tb_gh_user",$("#cfUser",sheetPanel).value.trim());
+    cfgSet("tb_gh_repo",$("#cfRepo",sheetPanel).value.trim());
+    cfgSet("tb_gh_branch",$("#cfBranch",sheetPanel).value.trim()||"main");
+    cfgSet("tb_lib_repo",$("#cfLibRepo",sheetPanel).value.trim());
+    cfgSet("tb_lib_file",$("#cfLibFile",sheetPanel).value.trim()||"uebungssammlung.json");
+    cfgSet("tb_cloud_audio",$("#cfAudio",sheetPanel).checked?"1":"0");
+    cfgSet("tb_cloud_auto",$("#cfAuto",sheetPanel).checked?"1":"0");
+    cfgSet("tb_cloud_on","1");
+    closeSheet(); setDot("busy","…"); toast("Cloud-Sync aktiv"); syncNow(true);
+  };
+  $("#cfSync",sheetPanel).onclick=()=>{
+    cfgSet("tb_gh_tok",$("#cfTok",sheetPanel).value.trim());
+    cfgSet("tb_gh_user",$("#cfUser",sheetPanel).value.trim());
+    cfgSet("tb_gh_repo",$("#cfRepo",sheetPanel).value.trim());
+    cfgSet("tb_gh_branch",$("#cfBranch",sheetPanel).value.trim()||"main");
+    cfgSet("tb_cloud_on","1");
+    syncNow(true);
+  };
+  $("#cfOff",sheetPanel).onclick=()=>{ cfgSet("tb_cloud_on","0"); setDot("off","Aus"); toast("Sync aus"); closeSheet(); };
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+function syncLogHtml(){
+  let log=[]; try{ log=JSON.parse(localStorage.getItem("tb_sync_log")||"[]"); }catch(e){}
+  if(!log.length) return "";
+  const rows = log.slice(0,8).map(e=>{
+    const t=new Date(e.at).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+    const p=[]; if(e.neu)p.push(e.neu+" neu"); if(e.upd)p.push(e.upd+" geändert"); if(e.del)p.push(e.del+" entfernt");
+    return `<div style="display:flex;justify-content:space-between;gap:10px"><span>${t}</span><span style="color:var(--dim)">${p.join(" · ")}</span></div>`;
+  }).join("");
+  return `<div class="blk-label" style="margin-top:12px">Zuletzt zusammengeführt</div><div class="cf-status" style="line-height:1.9">${rows}</div>`;
+}
+
+/* ============================================================
+   Übungssammlung lesen (read-only) und einfügen
+   ============================================================ */
+let LIB = null;
+try{ const c=JSON.parse(localStorage.getItem("tb_lib_cache")||"null"); if(c&&c.data) LIB=c; }catch(e){}
+async function libLoad(force){
+  if(!force && LIB && Date.now()-LIB.at < 6e5) return LIB.data;
+  try{
+    const f = await ghGetAt(CFG.libUser(), CFG.libRepo(), CFG.libBranch(), CFG.libFile());
+    if(!f || (!f.content && !f.download_url)) throw new Error("Sammlung nicht gefunden");
+    let txt;
+    if(f.content) txt = b64dec(f.content);
+    else txt = await fetch(f.download_url).then(r=>r.text());
+    const parsed = JSON.parse(txt);
+    const data = parsed.state || parsed;
+    data.exercises ||= []; data.blueprints ||= [];
+    LIB = {at:Date.now(), data};
+    try{ localStorage.setItem("tb_lib_cache", JSON.stringify(LIB)); }catch(e){}
+    return data;
+  }catch(e){
+    if(LIB && LIB.data) return LIB.data;   // Fallback: alter Cache
+    throw e;
+  }
+}
+async function refreshLib(){
+  try{ const d=await libLoad(true); toast("Sammlung geladen: "+(d.exercises.length)+" Übungen, "+(d.blueprints.length)+" Bausteine"); }
+  catch(e){ toast("Sammlung: "+(e.message||e)); }
+}
+const LIB_TYPES = {aufwaermen:"Aufwärmen", korb:"Korbübung", uebung:"Übung", spielform:"Spielform"};
+const LIB_BALLS = {rot:"Rot", orange:"Orange", gruen:"Grün", gelb:"Gelb"};
+function openLibPick(session){
+  const hasTok = !!CFG.tok();
+  if(!LIB && !hasTok){ toast("Erst Cloud-Sync mit Token einrichten – dann lädt die Sammlung"); return; }
+  if(session.area==="kondition"){ toast("Die Übungssammlung ist reines Tennis"); return; }
+  let view="exercises", typ="alle", ball="alle", q="";
+  openSheet(`<h2>📚 Aus Sammlung einfügen</h2>
+    <div class="sub" id="libSub">${LIB?("Stand: "+new Date(LIB.at).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})):"lädt…"} · <a id="libRefresh" style="color:var(--accent)">aktualisieren</a></div>
+    <div class="seg" style="margin-bottom:10px"><button id="lvEx" class="on">Einzelübungen</button><button id="lvBp">Stunden-Bausteine</button></div>
+    <input id="libQ" placeholder="Suchen…" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px">
+    <div id="libTyp" class="tagbar" style="margin:0 0 6px"></div>
+    <div id="libBall" class="tagbar" style="margin:0 0 8px"></div>
+    <div id="libList"></div>
+    <button class="sheet-close">Fertig</button>`);
+  const seg=$("#lvEx",sheetPanel).parentElement;
+  $("#lvEx",sheetPanel).onclick=()=>{ view="exercises"; seg.children[0].classList.add("on"); seg.children[1].classList.remove("on"); draw(); };
+  $("#lvBp",sheetPanel).onclick=()=>{ view="blueprints"; seg.children[1].classList.add("on"); seg.children[0].classList.remove("on"); draw(); };
+  $("#libQ",sheetPanel).oninput=e=>{ q=e.target.value.toLowerCase(); draw(); };
+  $("#libRefresh",sheetPanel).onclick=async()=>{ $("#libSub",sheetPanel).textContent="lädt…"; await refreshLib(); draw(); };
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+
+  function addExercise(x){
+    session.items.push({id:uid(), text: x.name + (x.desc?" – "+x.desc:""), done:false,
+      group: LIB_TYPES[x.type] || (x.tags&&x.tags[0]) || "Aus Sammlung", min: x.durationMin||"",
+      court: (x.court&&x.court.els&&x.court.els.length)?x.court:undefined});
+    (x.tags||[]).forEach(t=>{ if(!(session.tags||[]).includes(t)) (session.tags=session.tags||[]).push(t); });
+    touch(session); save(); render(); toast("„"+x.name+"“ eingefügt");
+  }
+  function appendBlueprint(b){
+    (b.items||[]).forEach(i=> session.items.push({id:uid(), text:i.text, done:false, group:i.group||b.name, min:i.durationMin||""}));
+    (b.tags||[]).forEach(t=>{ if(!(session.tags||[]).includes(t)) (session.tags=session.tags||[]).push(t); });
+    if(!session.title) session.title = b.name;
+    touch(session); save(); render(); toast("Baustein „"+b.name+"“ angehängt ("+(b.items||[]).length+" Punkte)");
+  }
+  function newFromBlueprint(b){
+    closeSheet();
+    newSession("tennis", null, session.groupId||undefined);
+    const ns = state.sessions[state.sessions.length-1];
+    ns.title=b.name; ns.tags=[...(b.tags||[])];
+    (b.items||[]).forEach(i=> ns.items.push({id:uid(),text:i.text,done:false,group:i.group||"",min:i.durationMin||""}));
+    touch(ns); save(); render(); toast("Neue Einheit aus „"+b.name+"“");
+  }
+  function chipRow(host, opts, cur, onPick){
+    host.innerHTML="";
+    opts.forEach(([v,l])=>{ const b=document.createElement("button"); b.className=(v===cur?"on":""); b.textContent=l; b.onclick=()=>onPick(v); host.appendChild(b); });
+  }
+
+  async function draw(){
+    const host=$("#libList",sheetPanel); host.innerHTML='<div style="color:var(--faint);font-size:13px;padding:10px">lädt…</div>';
+    let data;
+    try{ data = await libLoad(false); }catch(e){ host.innerHTML='<div style="color:var(--faint);font-size:13px;padding:10px">Sammlung nicht erreichbar: '+esc(e.message||e)+'</div>'; return; }
+    $("#libSub",sheetPanel).innerHTML = "Stand: "+new Date(LIB.at).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+' · <a id="libRefresh" style="color:var(--accent)">aktualisieren</a>';
+    $("#libRefresh",sheetPanel).onclick=async()=>{ await refreshLib(); draw(); };
+    const arr = (view==="blueprints"?data.blueprints:data.exercises)||[];
+    chipRow($("#libTyp",sheetPanel), [["alle","alle Typen"],...Object.entries(LIB_TYPES)], typ, v=>{ typ=v; draw(); });
+    chipRow($("#libBall",sheetPanel), [["alle","alle Bälle"],...Object.entries(LIB_BALLS)], ball, v=>{ ball=v; draw(); });
+    const items = arr.filter(x=>{
+      if(typ!=="alle" && x.type!==typ) return false;
+      if(ball!=="alle" && !(x.balls||[]).includes(ball)) return false;
+      if(q){ const hay=[x.name,x.desc,x.note,(x.tags||[]).join(" "),(x.items||[]).map(i=>i.text).join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+      return true;
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+    host.innerHTML="";
+    if(!items.length){ host.innerHTML='<div style="color:var(--faint);font-size:13px;padding:10px">Nichts gefunden – Filter lockern oder Sammlung aktualisieren.</div>'; return; }
+    items.forEach(x=>{
+      const facet = [LIB_TYPES[x.type], (x.balls||[]).map(b=>LIB_BALLS[b]).join("/"), (x.aud||[]).join("/")].filter(Boolean).join(" · ");
+      const row=document.createElement("div"); row.className="pick";
+      if(view==="blueprints"){
+        row.innerHTML=`<div class="p-main"><div style="font-weight:600">${esc(x.name)}${x.durationMin?` · ${x.durationMin}′`:""}</div>
+          <div class="p-tags">${(x.items||[]).length} Schritte · ${esc(facet)}</div></div>`;
+        const b1=document.createElement("button"); b1.className="p-add"; b1.textContent="↳"; b1.title="Punkte anhängen"; b1.onclick=()=>appendBlueprint(x);
+        const b2=document.createElement("button"); b2.className="p-add"; b2.style.color="var(--faint)"; b2.textContent="＋"; b2.title="als neue Einheit"; b2.onclick=()=>newFromBlueprint(x);
+        row.append(b1,b2);
+      }else{
+        row.innerHTML=`<button class="p-add">＋</button><div class="p-main"><div style="font-weight:600">${esc(x.name)}${x.durationMin?` · ${x.durationMin}′`:""}${x.court&&x.court.els&&x.court.els.length?" 📐":""}</div>
+          ${x.desc?`<div class="p-tags">${esc(x.desc)}</div>`:""}
+          <div class="p-tags">${esc(facet)}${(x.tags||[]).length?" · "+x.tags.map(esc).join(", "):""}</div></div>`;
+        $(".p-add",row).onclick=()=>addExercise(x);
+      }
+      host.appendChild(row);
+    });
+  }
+  draw();
+}
+
+/* ---------- Events ---------- */
+$("#syncDot").onclick=cloudSheet;
+$("#areaSeg").onclick=e=>{ const b=e.target.closest("button"); if(!b)return;
+  state.settings.area=b.dataset.a; save(); render(); };
+$("#menuBtn").onclick=menuSheet;
+$("#composeAdd").onclick=newSessionSheet;
+$("#composeMic").onclick=()=>startRec(null);
+$("#search").oninput=()=>render();
+$("#searchClear").onclick=()=>{ $("#search").value=""; render(); };
+$("#composeInput").onkeydown=e=>{
+  if(e.key!=="Enter") return;
+  const txt=e.target.value.trim(); if(!txt) return;
+  const a = state.settings.area==="alle" ? "tennis" : state.settings.area;
+  const grp = activeGroup();
+  let pool = state.sessions.filter(x=>x.area===a && x.status!=="done");
+  if(grp!=="alle") pool = pool.filter(x=>x.groupId===grp);
+  let s = pool.sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0];
+  if(!s){ newSession(a,false, grp!=="alle"?grp:undefined); s=state.sessions[state.sessions.length-1]; }
+  s.items.push({id:uid(),text:txt,done:false,group:"Notizen"});
+  touch(s); openIds.add(s.id); save(); render();
+  e.target.value=""; toast("Zu „"+fmtDate(s.date)+"“ hinzugefügt");
+};
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !sheet.classList.contains("hidden")) closeSheet(); });
+
+render();
+cloudInit();
+</script>
+</body>
+</html>
