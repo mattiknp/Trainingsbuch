@@ -195,7 +195,9 @@ textarea{resize:none;overflow:hidden}
 /* transkript */
 .memo .m-trans{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;line-height:1.5;color:var(--dim);min-height:34px}
 .memo .m-trans:focus{outline:none;border-color:var(--line2);color:var(--text)}
-.memo .m-tlabel{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+.memo .m-tlabel{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px}
+.memo .m-tr{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);border:1px solid var(--accent);border-radius:7px;padding:3px 8px}
+.memo .m-tr:disabled{opacity:.6;border-color:var(--line2);color:var(--dim)}
 
 /* anwesenheit */
 .att-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
@@ -983,12 +985,28 @@ async function renderMemos(container, s){
         <button class="m-del">✕</button>
       </div>
       <audio controls preload="none"></audio>
-      <div class="m-tlabel">📝 Notiz zum Memo</div>
-      <textarea class="m-trans" placeholder="Stichworte, worum es im Memo geht…">${esc(m.transcript||"")}</textarea>`;
+      <div class="m-tlabel">📝 Transkript
+        <button class="m-tr" title="Aufnahme per KI transkribieren">✨ transkribieren</button></div>
+      <textarea class="m-trans" placeholder="Automatisch per KI – oder von Hand Stichworte eintragen…">${esc(m.transcript||"")}</textarea>`;
     $(".m-label",el).oninput=e=>{ m.label=e.target.value; m.mLabelAt=Date.now(); saveSoft(); };
     const tr=$(".m-trans",el);
     tr.oninput=()=>{ m.transcript=tr.value; m.mTransAt=Date.now(); autosize(tr); touch(s); saveSoft(); };
     requestAnimationFrame(()=>autosize(tr));
+    $(".m-tr",el).onclick=async(ev)=>{
+      const btn=ev.currentTarget;
+      btn.disabled=true; btn.textContent="… transkribiert";
+      try{
+        const txt = await transcribeMemo(m);
+        m.transcript = (m.transcript && m.transcript.trim()) ? (m.transcript.trim()+"\n"+txt) : txt;
+        m.mTransAt = Date.now(); touch(s); save();
+        tr.value = m.transcript; autosize(tr);
+        btn.textContent="✨ transkribieren";
+      }catch(e){
+        toast("Transkription: "+(e.message||e));
+        btn.textContent="✨ nochmal versuchen";
+      }
+      btn.disabled=false;
+    };
     $(".m-del",el).onclick=async()=>{
       if(!confirm("Memo löschen?")) return;
       try{await idbDel(m.id);}catch(e){}
@@ -1149,6 +1167,73 @@ function carryOverInto(s, silent){
   return open.length;
 }
 
+/* ---------- KI-Transkription (Groq / OpenAI Whisper) ---------- */
+const STT = {
+  prov: ()=>localStorage.getItem("tb_stt_prov")||"groq",
+  key:  ()=>localStorage.getItem("tb_stt_key")||"",
+  auto: ()=>localStorage.getItem("tb_stt_auto")==="1",
+};
+async function transcribeMemo(m){
+  if(!STT.key()) { sttSheet(); throw new Error("Erst API-Key hinterlegen"); }
+  const blob = await idbGet(m.id);
+  if(!blob) throw new Error("Aufnahme nicht auf diesem Gerät");
+  const groq = STT.prov()==="groq";
+  const url = groq ? "https://api.groq.com/openai/v1/audio/transcriptions"
+                   : "https://api.openai.com/v1/audio/transcriptions";
+  const model = groq ? "whisper-large-v3-turbo" : "whisper-1";
+  const ext = /(mp4|aac|m4a)/.test(m.mime||"") ? "m4a" : "webm";
+  const fd = new FormData();
+  fd.append("file", new File([blob], "memo."+ext, {type: blob.type||"audio/webm"}));
+  fd.append("model", model);
+  fd.append("language", "de");
+  fd.append("response_format", "json");
+  const r = await fetch(url, { method:"POST", headers:{ Authorization:"Bearer "+STT.key() }, body: fd });
+  if(!r.ok){
+    let msg = "HTTP "+r.status;
+    try{ const j=await r.json(); msg = j.error?.message || msg; }catch(e){}
+    throw new Error(msg);
+  }
+  const j = await r.json();
+  const txt = (j.text||"").trim();
+  if(!txt) throw new Error("leeres Ergebnis");
+  return txt;
+}
+function sttSheet(){
+  const p = STT.prov();
+  openSheet(`<h2>Transkription (KI)</h2>
+    <div class="sub">Wandelt deine Sprachmemos automatisch in Text um. Läuft über einen Cloud-Dienst – dein Key liegt nur in diesem Browser.</div>
+    <div class="mini-form">
+      <label class="tiny">Dienst</label>
+      <select id="stProv">
+        <option value="groq"${p==="groq"?" selected":""}>Groq · Whisper large v3 (empfohlen, kostenlos)</option>
+        <option value="openai"${p==="openai"?" selected":""}>OpenAI · Whisper</option>
+      </select>
+      <label class="tiny">API-Key</label>
+      <input id="stKey" type="password" autocomplete="off" placeholder="gsk_… bzw. sk-…" value="${esc(STT.key())}">
+    </div>
+    <div class="toggle-row"><input type="checkbox" id="stAuto" ${STT.auto()?"checked":""}>
+      <label for="stAuto">Nach jeder Aufnahme automatisch transkribieren</label></div>
+    <div class="sheet-grp">
+      <button class="sheet-btn" id="stSave" style="justify-content:center;color:var(--accent);border-color:var(--accent)">Speichern</button>
+    </div>
+    <div class="tips">
+      <b>Groq-Key holen (2 Min, gratis)</b>
+      <ul>
+        <li><code>console.groq.com</code> → anmelden → <b>API Keys</b> → Create.</li>
+        <li>Key oben einfügen, speichern. Fertig – Groq-Whisper ist sehr gut bei Deutsch, auch mit Hallenlärm.</li>
+      </ul>
+      <div style="color:var(--faint)">OpenAI: Key von <code>platform.openai.com</code>. Je nach Browser/Adblocker kann OpenAI direkte Aufrufe blockieren – dann nimm Groq.</div>
+    </div>
+    <button class="sheet-close">Schließen</button>`);
+  $("#stSave",sheetPanel).onclick=()=>{
+    localStorage.setItem("tb_stt_prov", $("#stProv",sheetPanel).value);
+    localStorage.setItem("tb_stt_key", $("#stKey",sheetPanel).value.trim());
+    localStorage.setItem("tb_stt_auto", $("#stAuto",sheetPanel).checked?"1":"0");
+    toast("Gespeichert"); closeSheet();
+  };
+  $(".sheet-close",sheetPanel).onclick=closeSheet;
+}
+
 /* ---------- Aufnahme ---------- */
 let rec = {mr:null,chunks:[],stream:null,t0:0,timer:null,targetId:null,cancelled:false};
 async function startRec(sessionId){
@@ -1178,9 +1263,17 @@ async function startRec(sessionId){
     try{ await idbPut(id, blob); }catch(e){ toast("Audio konnte nicht gespeichert werden"); return; }
     const s = state.sessions.find(x=>x.id===rec.targetId);
     if(!s) return;
-    s.memos.push({id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0});
+    const memo = {id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0};
+    s.memos.push(memo);
     touch(s); save(); render();
     toast("Memo gespeichert · "+fmtDate(s.date));
+    if(STT.auto() && STT.key()){
+      transcribeMemo(memo).then(txt=>{
+        memo.transcript=txt; memo.mTransAt=Date.now(); touch(s); save();
+        if(openIds.has(s.id)) render();
+        toast("Transkript fertig");
+      }).catch(e=>toast("Transkription: "+(e.message||e)));
+    }
   };
   rec.mr.start();
   $("#recBar").classList.remove("hidden");
@@ -1214,6 +1307,7 @@ function menuSheet(){
       <button class="sheet-btn" data-x="tpl"><span class="em">🧩</span>Vorlagen bearbeiten<small>Standard-Aufbau für neue Einheiten (global)</small></button>
     </div>
     <div class="sheet-grp">
+      <button class="sheet-btn" data-x="stt"><span class="em">🎙</span>Transkription (KI)<small>${STT.key()?"aktiv – "+(STT.prov()==="groq"?"Groq":"OpenAI"):"Sprachmemos automatisch in Text"}</small></button>
       <button class="sheet-btn" data-x="cloud"><span class="em">☁️</span>Cloud-Sync (Handy ↔ Mac)<small>${CFG.on()?"aktiv – tippen zum Einstellen":"über GitHub einrichten"}</small></button>
       <button class="sheet-btn" data-x="exp"><span class="em">💾</span>Backup als Datei sichern<small>Alles inkl. Sprachmemos (.json)</small></button>
       <button class="sheet-btn" data-x="imp"><span class="em">📂</span>Backup aus Datei laden</button>
@@ -1232,6 +1326,7 @@ function menuSheet(){
     else if(x==="drills"){ drillManageSheet(); }
     else if(x==="lib"){ closeSheet(); refreshLib(); }
     else if(x==="tpl"){ templateSheet(); }
+    else if(x==="stt"){ sttSheet(); }
     else if(x==="cloud"){ cloudSheet(); }
     else if(x==="exp"){ exportJSON(); }
     else if(x==="imp"){ importJSON(); }
@@ -1259,7 +1354,7 @@ function tipsSheet(){
         <li><b>Vorlagen</b>: neue Einheit startet mit Aufwärmen/Technik/Taktik/Spielformen/Ausklang.</li>
         <li><b>„Offene Punkte übernehmen“</b>: nicht Erledigtes wandert automatisch in die nächste Einheit <i>derselben Stunde</i>.</li>
         <li><b>Nachbesprechung</b> pro Einheit + <b>Sprachmemo</b> direkt nach dem Training – vor der nächsten Stunde hörst du rein.</li>
-        <li><b>Notiz zum Memo</b>: unter jeder Aufnahme ein kleines Textfeld für Stichworte – so weißt du auf einen Blick, worum es geht, ohne alles anhören zu müssen.</li>
+        <li><b>Transkript</b>: unter jeder Aufnahme „✨ transkribieren“ – wandelt das Memo per KI (Groq/OpenAI Whisper) in Text um. Einmal im Menü → 🎙 Transkription einen (kostenlosen) Groq-Key hinterlegen. Optional automatisch nach jeder Aufnahme.</li>
         <li><b>Unterpunkte</b>: mit <b>⇥</b> (oder Tab-Taste) einen Punkt einrücken; im leeren Feld rückt Backspace wieder aus.</li>
         <li><b>Anwesenheit</b>: bei einer Einheit mit Stunde die Namen antippen. Kader &amp; Quote in „Stunden verwalten → Termin &amp; Kader“.</li>
         <li><b>Wochenplan</b> (Menü → 🗓️ Woche): Stunden mit festem Wochentag+Uhrzeit, nach nächstem Termin sortiert, Einheit mit einem Tap anlegen.</li>
@@ -1732,8 +1827,10 @@ async function ghDel(path,sha,msg){
 }
 
 /* ---- Merge ---- */
+const TOMB_TTL = 3*864e5;   // Löschungen wirken nur 3 Tage – danach werden sie ignoriert (verhindert „Geister-Löschungen“ zwischen Geräten)
+function tombActive(ts){ return ts && ts > Date.now()-TOMB_TTL; }
 function pruneTomb(t){
-  const cut=Date.now()-90*864e5;
+  const cut=Date.now()-TOMB_TTL;
   for(const g of Object.values(t)) for(const id of Object.keys(g)) if(g[id]<cut) delete g[id];
   return t;
 }
@@ -1749,7 +1846,7 @@ function mergeTomb(a={},b={}){
 function mergeList(a=[],b=[],tomb={}){
   const m=new Map();
   for(const x of [...a,...b]){ const p=m.get(x.id); if(!p || (x.updatedAt||0) > (p.updatedAt||0)) m.set(x.id,x); }
-  for(const [id,ts] of Object.entries(tomb)){ const e=m.get(id); if(e && (e.updatedAt||0) <= ts) m.delete(id); }
+  for(const [id,ts] of Object.entries(tomb)){ const e=m.get(id); if(e && tombActive(ts) && (e.updatedAt||0) < ts) m.delete(id); }
   return [...m.values()];
 }
 function mergeSessions(a=[],b=[],tomb){
@@ -1763,9 +1860,9 @@ function mergeSessions(a=[],b=[],tomb){
       const q=mem.get(mm.id);
       if(!q || (mm.synced&&!q.synced) || (mm.mLabelAt||0)>(q.mLabelAt||0) || (mm.mTransAt||0)>(q.mTransAt||0)) mem.set(mm.id,mm);
     }
-    m.set(x.id,{...newer, memos:[...mem.values()].filter(mm=>!(tomb.memo&&tomb.memo[mm.id]))});
+    m.set(x.id,{...newer, memos:[...mem.values()].filter(mm=>!(tomb.memo && tombActive(tomb.memo[mm.id])))});
   }
-  for(const [id,ts] of Object.entries(tomb.session||{})){ const e=m.get(id); if(e && (e.updatedAt||0) <= ts) m.delete(id); }
+  for(const [id,ts] of Object.entries(tomb.session||{})){ const e=m.get(id); if(e && tombActive(ts) && (e.updatedAt||0) < ts) m.delete(id); }
   return [...m.values()];
 }
 function mergeState(local, remote){
@@ -1804,17 +1901,29 @@ function pushSyncLog(entry){
 }
 
 /* ---- Ablauf ---- */
-let syncing=false, syncT=null, remoteSha=null;
+let syncing=false, syncT=null, remoteSha=null, resyncPending=false, editingUntil=0;
 function setDot(s,txt){ const el=$("#syncDot"); if(el){ el.dataset.s=s; el.title=txt||""; } }
+function markEditing(){ editingUntil = Date.now() + 15000; }
+function isEditing(){
+  if(Date.now() < editingUntil) return true;
+  if(sheet && !sheet.classList.contains("hidden")) return true;
+  const a = document.activeElement;
+  if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+  return false;
+}
 function queueCloud(){
   try{ if(!CFG.on()||!CFG.auto()) return; }catch(e){ return; }
-  clearTimeout(syncT); syncT=setTimeout(()=>syncNow(false), 3000);
+  if(syncing){ resyncPending=true; return; }
+  clearTimeout(syncT); syncT=setTimeout(()=>syncNow(false), 4000);
 }
 async function syncNow(manual){
   if(!CFG.on()){ if(manual) toast("Cloud-Sync ist aus"); return; }
   if(!CFG.tok()){ if(manual) toast("Kein Token hinterlegt"); return; }
-  if(syncing) return;
+  if(syncing){ resyncPending=true; return; }
+  // Nie eingreifen, während der Nutzer tippt oder ein Fenster offen ist – nur verschieben, nichts verwerfen
+  if(!manual && isEditing()){ clearTimeout(syncT); syncT=setTimeout(()=>syncNow(false), 5000); return; }
   syncing=true; setDot("busy","Gleicht ab …");
+  let structuralChange=false;
   try{
     let remoteObj=null;
     const rf=await ghGet(CFG.file());
@@ -1822,11 +1931,14 @@ async function syncNow(manual){
       try{ remoteObj=ensure(JSON.parse(b64dec(rf.content))); remoteSha=rf.sha; }catch(e){ remoteObj=null; }
     } else if(rf){ remoteSha=rf.sha; }
 
-    if(remoteObj){
+    if(remoteObj && isEditing()){        // während der Fetch lief, hat der Nutzer angefangen zu tippen -> Merge verschieben
+      resyncPending=true;
+    } else if(remoteObj){
       const before=snapIds(state);
       state = mergeState(state, remoteObj);
       const d=diffSnap(before, snapIds(state));
       if(d.neu||d.upd||d.del){
+        structuralChange=true;
         pushSyncLog({at:Date.now(), ...d});
         const parts=[]; if(d.neu)parts.push(d.neu+" neu"); if(d.upd)parts.push(d.upd+" geändert"); if(d.del)parts.push(d.del+" entfernt");
         toast("Vom anderen Gerät: "+parts.join(", "));
@@ -1847,7 +1959,7 @@ async function syncNow(manual){
         if(e.conflict){
           const rf2=await ghGet(CFG.file());
           const remote2=rf2&&rf2.content?ensure(JSON.parse(b64dec(rf2.content))):null;
-          if(remote2){ state=mergeState(state,remote2); save._silent=true;save();save._silent=false; }
+          if(remote2 && !isEditing()){ state=mergeState(state,remote2); structuralChange=true; save._silent=true;save();save._silent=false; }
           const res2=await ghPut(CFG.file(), b64enc(JSON.stringify(stripForCloud(state))), rf2&&rf2.sha, "trainingsbuch merge "+new Date().toISOString());
           remoteSha=res2.content.sha;
         } else throw e;
@@ -1855,12 +1967,15 @@ async function syncNow(manual){
     }
     localStorage.setItem("tb_cloud_last", Date.now()+"");
     setDot("ok","Synchron · "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
-    render();
+    if(structuralChange && !isEditing()) render();     // nur neu zeichnen, wenn sich wirklich was geändert hat und niemand gerade tippt
     if(manual) toast("Abgeglichen");
   }catch(e){
     console.warn(e); setDot("err", e.message||"Fehler");
     if(manual) toast("Sync-Fehler: "+(e.message||e));
-  }finally{ syncing=false; }
+  }finally{
+    syncing=false;
+    if(resyncPending){ resyncPending=false; clearTimeout(syncT); syncT=setTimeout(()=>syncNow(false), 2500); }
+  }
 }
 async function syncAudio(st){
   let localKeys;
@@ -1894,9 +2009,12 @@ async function syncAudio(st){
 }
 function cloudInit(){
   setDot(CFG.on()?"idle":"off", CFG.on()?"Cloud-Sync bereit":"Cloud-Sync aus");
-  if(CFG.on()) syncNow(false);
-  document.addEventListener("visibilitychange",()=>{ if(!document.hidden && CFG.on() && CFG.auto()) syncNow(false); });
-  window.addEventListener("online",()=>{ if(CFG.on()) syncNow(false); });
+  document.addEventListener("input", markEditing, true);
+  document.addEventListener("keydown", markEditing, true);
+  document.addEventListener("focusin", e=>{ if(e.target && e.target.matches && e.target.matches("input,textarea,select")) markEditing(); }, true);
+  if(CFG.on()) setTimeout(()=>syncNow(false), 1500);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden && CFG.on() && CFG.auto() && !isEditing()) setTimeout(()=>syncNow(false), 800); });
+  window.addEventListener("online",()=>{ if(CFG.on() && !isEditing()) syncNow(false); });
 }
 
 function cloudSheet(){
