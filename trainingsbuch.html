@@ -108,6 +108,8 @@ textarea{resize:none;overflow:hidden}
 .pin-title:focus{outline:none;border-bottom:1px solid var(--line2)}
 .pin-body{width:100%;background:none;border:0;min-height:44px;line-height:1.5;font-size:15px}
 .pin-body:focus{outline:none}
+.pin-grp{font-size:11px;color:var(--faint);background:none;border:0;padding:0 0 6px;margin-top:-4px}
+.pin-grp:focus{outline:none}
 .pin .del{color:var(--faint);font-size:15px;padding:4px 6px}
 .addpin{width:100%;border:1px dashed var(--line2);background:none;border-radius:var(--r-lg);padding:12px;color:var(--dim);font-size:14px;font-weight:600}
 .addpin:active{background:var(--panel2)}
@@ -469,10 +471,10 @@ function seedState(){
     templatesUpdatedAt:0,
     groups:G,
     pins:[
-      {id:uid(),area:"tennis",title:"Ideen",body:"- Rückhand longline stabilisieren\n- Mehr Spielformen mit Zielzonen\n- ",updatedAt:Date.now()},
-      {id:uid(),area:"tennis",title:"Teilnehmer",body:"Gruppe (Mi 17:00):\n- \n- \n- ",updatedAt:Date.now()},
-      {id:uid(),area:"kondition",title:"Ideen",body:"- Antritts-Serie vor dem Tennis\n- ",updatedAt:Date.now()},
-      {id:uid(),area:"kondition",title:"Teilnehmer",body:"- ",updatedAt:Date.now()}
+      {id:uid(),area:"tennis",groupId:G[0].id,title:"Ideen",body:"- Rückhand longline stabilisieren\n- Mehr Spielformen mit Zielzonen\n- ",updatedAt:Date.now()},
+      {id:uid(),area:"tennis",groupId:G[0].id,title:"Teilnehmer",body:"Gruppe (Mi 17:00):\n- \n- \n- ",updatedAt:Date.now()},
+      {id:uid(),area:"kondition",groupId:null,title:"Ideen",body:"- Antritts-Serie vor dem Tennis\n- ",updatedAt:Date.now()},
+      {id:uid(),area:"kondition",groupId:null,title:"Teilnehmer",body:"- ",updatedAt:Date.now()}
     ],
     drills:[
       {id:uid(),area:"tennis",name:"Kreuz / Longline",tags:["Technik","Kontrolle"],note:"Diagonal spielen, auf Kommando longline wechseln."},
@@ -521,6 +523,7 @@ function ensure(s){
   for(const g of ["pin","session","drill","memo","group"]) s.tomb[g] ||= {};
   s.groups.forEach((g,i)=>{ g.order = g.order ?? i; g.roster ||= []; });
   s.sessions.forEach(x=>{ x.items ||= []; x.memos ||= []; x.tags ||= []; x.attend ||= {}; x.items.forEach(i=>i.id ||= uid()); });
+  s.pins.forEach(p=>{ p.groupId = p.groupId || null; });
   return s;
 }
 const WEEKDAYS = ["Mo","Di","Mi","Do","Fr","Sa","So"];
@@ -572,9 +575,11 @@ function visibleSessions(){
 }
 function visiblePins(){
   const a = state.settings.area;
+  const grp = activeGroup();
   const q = ($("#search").value||"").trim().toLowerCase();
   let list = state.pins.slice();
   if(a!=="alle") list = list.filter(p=>p.area===a);
+  list = grp==="alle" ? list.filter(p=>!p.groupId) : list.filter(p=>p.groupId===grp);
   if(q) list = list.filter(p=>(p.title+" "+p.body).toLowerCase().includes(q));
   return list;
 }
@@ -593,15 +598,18 @@ function render(){
 
   // Pins
   const pins = visiblePins();
-  const pl = document.createElement("div"); pl.className="sec-label"; pl.textContent="Angepinnt";
+  const curGrp = activeGroup();
+  const grpObj = curGrp!=="alle" ? state.groups.find(g=>g.id===curGrp) : null;
+  const pl = document.createElement("div"); pl.className="sec-label";
+  pl.textContent = grpObj ? "Angepinnt – "+grpObj.name : "Angepinnt – Allgemein";
   board.appendChild(pl);
   const pc = document.createElement("div"); pc.className="pins";
   pins.forEach(p=>pc.appendChild(pinEl(p)));
   const addP = document.createElement("button");
-  addP.className="addpin"; addP.textContent="＋ Notiz anpinnen";
+  addP.className="addpin"; addP.textContent = grpObj ? "＋ Notiz für „"+grpObj.name+"“ anpinnen" : "＋ allgemeine Notiz anpinnen";
   addP.onclick=()=>{
-    const area = a==="alle" ? "tennis" : a;
-    state.pins.push({id:uid(),area,title:"Neue Notiz",body:"",updatedAt:Date.now()}); save(); render();
+    const area = a==="alle" ? (grpObj ? grpObj.area : "tennis") : a;
+    state.pins.push({id:uid(),area,groupId:grpObj?grpObj.id:null,title:"Neue Notiz",body:"",updatedAt:Date.now()}); save(); render();
   };
   pc.appendChild(addP);
   board.appendChild(pc);
@@ -680,16 +688,21 @@ function groupBar(){
 
 function pinEl(p){
   const el = document.createElement("div"); el.className="pin";
+  const opts = ['<option value="">— allgemein —</option>']
+    .concat(groupsForArea(p.area).map(g=>`<option value="${g.id}"${p.groupId===g.id?" selected":""}>${esc(g.name)}</option>`))
+    .join("");
   el.innerHTML = `
     <div class="pin-head">
       <span class="pin-ico">📌</span>
       <input class="pin-title" value="${esc(p.title)}">
       <button class="del">✕</button>
     </div>
+    <select class="pin-grp">${opts}</select>
     <textarea class="pin-body" placeholder="Text…">${esc(p.body)}</textarea>`;
-  const ti = $(".pin-title",el), bo = $(".pin-body",el);
+  const ti = $(".pin-title",el), bo = $(".pin-body",el), gs = $(".pin-grp",el);
   ti.oninput = ()=>{ p.title=ti.value; p.updatedAt=Date.now(); save(); };
   bo.oninput = ()=>{ p.body=bo.value; p.updatedAt=Date.now(); autosize(bo); save(); };
+  gs.onchange = ()=>{ p.groupId = gs.value || null; p.updatedAt=Date.now(); save(); render(); };
   $(".del",el).onclick = ()=>{ if(confirm("Notiz löschen?")){ state.tomb.pin[p.id]=Date.now(); state.pins=state.pins.filter(x=>x.id!==p.id); save(); render(); } };
   requestAnimationFrame(()=>autosize(bo));
   return el;
@@ -1253,6 +1266,7 @@ function tipsSheet(){
       <ul>
         <li><b>Tennis / Kondition getrennt</b> – Umschalter oben, nichts vermischt sich.</li>
         <li><b>Stunden</b> (die Chip-Leiste): deine eigenen Trainings-Slots. Frei benennen, per „＋ Stunde“ jederzeit erweitern, per ✏︎ ordnen/löschen. Im Winter einfach neue anlegen.</li>
+        <li><b>Angepinnte Notizen sind stundenweise</b>: Ideen/Teilnehmer, die du bei einer bestimmten Stunde anpinnst, siehst du nur dort – nicht bei den anderen Stunden. Über den Dropdown im Notizkopf kannst du eine Notiz auch auf „allgemein“ (sichtbar unter „Alle Stunden“) stellen.</li>
         <li><b>Punkte abhaken</b> statt Text durchstreichen – Fortschritt sichtbar (4/9).</li>
         <li><b>Vorlagen</b>: neue Einheit startet mit Aufwärmen/Technik/Taktik/Spielformen/Ausklang.</li>
         <li><b>„Offene Punkte übernehmen“</b>: nicht Erledigtes wandert automatisch in die nächste Einheit <i>derselben Stunde</i>.</li>
@@ -1342,7 +1356,8 @@ function openDrillPick(s){
   $(".sheet-close",sheetPanel).onclick=()=>{ closeSheet(); };
 }
 function openIdeaPick(s){
-  const pin = state.pins.find(p=>p.area===s.area && /idee/i.test(p.title));
+  const cand = state.pins.filter(p=>p.area===s.area && /idee/i.test(p.title));
+  const pin = cand.find(p=>p.groupId===s.groupId) || cand.find(p=>!p.groupId);
   const lines = pin ? pin.body.split("\n").map(l=>l.replace(/^[-*•\s]+/,"").trim()).filter(Boolean) : [];
   openSheet(`<h2>Aus „Ideen“ übernehmen</h2>
     <div class="sub">${pin?"Tippe eine Idee an, um sie als Punkt einzufügen.":"Keine Ideen-Notiz für diesen Bereich gefunden."}</div>
@@ -1649,14 +1664,15 @@ function exportMarkdown(){
   };
   for(const area of ["tennis","kondition"]){
     L.push("## "+(area==="tennis"?"🎾 Tennis":"💪 Kondition"),"");
-    state.pins.filter(p=>p.area===area).forEach(p=>{ L.push("### 📌 "+p.title, p.body||"", ""); });
     const buckets = groupsForArea(area).map(g=>({name:g.name,id:g.id}));
-    buckets.push({name:"Ohne Stunde",id:null});
+    buckets.push({name:"Allgemein (ohne Stunde)",id:null});
     buckets.forEach(bk=>{
-      const ss=state.sessions.filter(s=>s.area===area && (s.groupId||null)===bk.id)
+      const pins = state.pins.filter(p=>p.area===area && (p.groupId||null)===bk.id);
+      const ss = state.sessions.filter(s=>s.area===area && (s.groupId||null)===bk.id)
         .sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-      if(!ss.length) return;
+      if(!pins.length && !ss.length) return;
       L.push("### "+bk.name,"");
+      pins.forEach(p=>{ L.push("**📌 "+p.title+"**", p.body||"", ""); });
       ss.forEach(sessBlock);
     });
   }
