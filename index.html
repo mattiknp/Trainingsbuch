@@ -144,7 +144,11 @@ textarea{resize:none;overflow:hidden}
 .title-in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:12px 0 0;font-weight:600}
 
 .grp{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);margin:12px 2px 6px}
-.item{display:flex;align-items:flex-start;gap:8px;padding:3px 0}
+.item{display:flex;align-items:flex-start;gap:6px;padding:3px 0}
+.item.sub{border-left:2px solid var(--line2);padding-left:8px}
+.item.sub .it-text{font-size:14px}
+.item .it-in{flex:none;width:20px;height:20px;margin-top:2px;color:var(--faint);font-size:13px;padding:0;border-radius:5px}
+.item .it-in:active{background:var(--panel3)}
 .item .cb{width:20px;height:20px;margin-top:2px;flex:none;border:1.5px solid var(--line2);border-radius:6px;display:grid;place-items:center;font-size:12px;color:transparent}
 .item.done .cb{background:var(--tennis);border-color:var(--tennis);color:#fff}
 .card[data-a=kondition] .item.done .cb{background:var(--kondi);border-color:var(--kondi)}
@@ -522,7 +526,7 @@ function ensure(s){
   s.tomb = Object.assign({pin:{},session:{},drill:{},memo:{},group:{}}, s.tomb||{});
   for(const g of ["pin","session","drill","memo","group"]) s.tomb[g] ||= {};
   s.groups.forEach((g,i)=>{ g.order = g.order ?? i; g.roster ||= []; });
-  s.sessions.forEach(x=>{ x.items ||= []; x.memos ||= []; x.tags ||= []; x.attend ||= {}; x.items.forEach(i=>i.id ||= uid()); });
+  s.sessions.forEach(x=>{ x.items ||= []; x.memos ||= []; x.tags ||= []; x.attend ||= {}; x.items.forEach(i=>{ i.id ||= uid(); i.indent = Math.max(0,Math.min(2, i.indent||0)); }); });
   s.pins.forEach(p=>{ p.groupId = p.groupId || null; });
   return s;
 }
@@ -839,7 +843,7 @@ function sessionEditor(s){
   const acts = document.createElement("div"); acts.className="act-row";
   const bAdd = mkBtn("＋ Punkt", ()=>{
     const last = s.items[s.items.length-1];
-    const it = {id:uid(),text:"",done:false,group:last?last.group||"":"",min:""};
+    const it = {id:uid(),text:"",done:false,group:last?last.group||"":"",min:"",indent:last?last.indent||0:0};
     s.items.push(it); touch(s); save(); renderItems(list,s); refreshSum();
     focusItem(list, it.id);
   });
@@ -909,25 +913,32 @@ function renderItems(container, s){
       container.appendChild(g);
     }
     lastGroup = it.group||"";
-    const row=document.createElement("div"); row.className="item"+(it.done?" done":"");
+    const lvl = Math.max(0, Math.min(2, it.indent||0));
+    const row=document.createElement("div"); row.className="item"+(it.done?" done":"")+(lvl?" sub":"");
     row.dataset.id = it.id;
+    row.style.marginLeft = (lvl*22)+"px";
     const hasCourt = it.court && it.court.els && it.court.els.length;
     row.innerHTML = `<button class="cb">✓</button>
+      <button class="it-in" title="Einrücken (Unterpunkt)">⇥</button>
       <input class="it-text" value="${esc(it.text)}" placeholder="Übung / Punkt…">
       <input class="it-min" type="number" inputmode="numeric" value="${it.min||""}" placeholder="min" aria-label="Minuten">
       <button class="it-court${hasCourt?" has":""}" title="Zielzonen-Skizze">📐</button>
       <button class="mv" data-d="-1">▲</button><button class="mv" data-d="1">▼</button>
       <button class="x">✕</button>`;
+    const setIndent = (v)=>{ it.indent = Math.max(0, Math.min(2, v)); touch(s); save(); renderItems(container,s); focusItem(container,it.id); };
     $(".cb",row).onclick=()=>{ it.done=!it.done; touch(s); save(); render(); };
+    $(".it-in",row).onclick=()=>setIndent(((it.indent||0)+1)>2 ? 0 : (it.indent||0)+1);
     $(".it-court",row).onclick=()=>courtSheet(it, ()=>{ touch(s); save(); renderItems(container,s); });
     $(".it-min",row).oninput=e=>{ it.min=parseInt(e.target.value)||""; touch(s); saveSoft(); s.__refreshSum&&s.__refreshSum(); };
     const tx=$(".it-text",row);
     tx.oninput=()=>{ it.text=tx.value; touch(s); saveSoft(); };
     tx.onkeydown=(e)=>{
-      if(e.key==="Enter"){ e.preventDefault();
-        const ni={id:uid(),text:"",done:false,group:it.group||""};
+      if(e.key==="Tab"){ e.preventDefault(); setIndent((it.indent||0) + (e.shiftKey?-1:1)); }
+      else if(e.key==="Enter"){ e.preventDefault();
+        const ni={id:uid(),text:"",done:false,group:it.group||"",indent:it.indent||0};
         s.items.splice(idx+1,0,ni); touch(s); save(); renderItems(container,s); focusItem(container,ni.id);
       } else if(e.key==="Backspace" && tx.value===""){ e.preventDefault();
+        if((it.indent||0)>0){ setIndent((it.indent||0)-1); return; }
         s.items.splice(idx,1); touch(s); save(); renderItems(container,s);
         const prev=s.items[idx-1]; if(prev) focusItem(container,prev.id);
       }
@@ -972,8 +983,8 @@ async function renderMemos(container, s){
         <button class="m-del">✕</button>
       </div>
       <audio controls preload="none"></audio>
-      <div class="m-tlabel">📝 Transkript ${SPEECH_OK?"":"(manuell – Spracherkennung hier nicht verfügbar)"}</div>
-      <textarea class="m-trans" placeholder="Stichworte, was auf dem Memo gesagt wird…">${esc(m.transcript||"")}</textarea>`;
+      <div class="m-tlabel">📝 Notiz zum Memo</div>
+      <textarea class="m-trans" placeholder="Stichworte, worum es im Memo geht…">${esc(m.transcript||"")}</textarea>`;
     $(".m-label",el).oninput=e=>{ m.label=e.target.value; m.mLabelAt=Date.now(); saveSoft(); };
     const tr=$(".m-trans",el);
     tr.oninput=()=>{ m.transcript=tr.value; m.mTransAt=Date.now(); autosize(tr); touch(s); saveSoft(); };
@@ -1133,32 +1144,13 @@ function carryOverInto(s, silent){
   const open = prev.items.filter(i=>!i.done && i.text.trim());
   if(!open.length) return 0;
   const g = "Offen aus "+fmtShort(prev.date);
-  open.forEach(i=> s.items.push({id:uid(),text:i.text,done:false,group:g}));
+  open.forEach(i=> s.items.push({id:uid(),text:i.text,done:false,group:g,indent:i.indent||0}));
   touch(s);
   return open.length;
 }
 
 /* ---------- Aufnahme ---------- */
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-const SPEECH_OK = !!SpeechRec;
-let rec = {mr:null,chunks:[],stream:null,t0:0,timer:null,targetId:null,cancelled:false,sr:null,transcript:""};
-function startSpeech(){
-  if(!SPEECH_OK) return;
-  try{
-    const sr = new SpeechRec();
-    sr.lang="de-DE"; sr.continuous=true; sr.interimResults=false;
-    sr.onresult = ev=>{
-      for(let i=ev.resultIndex;i<ev.results.length;i++){
-        if(ev.results[i].isFinal) rec.transcript += (rec.transcript?" ":"") + ev.results[i][0].transcript.trim();
-      }
-    };
-    sr.onerror = ()=>{};
-    sr.onend = ()=>{ if(rec.mr && rec.mr.state==="recording" && !rec.cancelled){ try{ sr.start(); }catch(e){} } };
-    sr.start();
-    rec.sr = sr;
-  }catch(e){ rec.sr=null; }
-}
-function stopSpeech(){ if(rec.sr){ try{ rec.sr.onend=null; rec.sr.stop(); }catch(e){} rec.sr=null; } }
+let rec = {mr:null,chunks:[],stream:null,t0:0,timer:null,targetId:null,cancelled:false};
 async function startRec(sessionId){
   if(rec.mr && rec.mr.state==="recording") return;
   let targetId = sessionId;
@@ -1175,10 +1167,9 @@ async function startRec(sessionId){
   const mime = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/aac"]
     .find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || "";
   rec.mr = mime ? new MediaRecorder(rec.stream,{mimeType:mime}) : new MediaRecorder(rec.stream);
-  rec.chunks=[]; rec.cancelled=false; rec.targetId=targetId; rec.t0=Date.now(); rec.transcript="";
+  rec.chunks=[]; rec.cancelled=false; rec.targetId=targetId; rec.t0=Date.now();
   rec.mr.ondataavailable = e=>{ if(e.data.size) rec.chunks.push(e.data); };
   rec.mr.onstop = async ()=>{
-    stopSpeech();
     rec.stream.getTracks().forEach(t=>t.stop());
     $("#recBar").classList.add("hidden"); clearInterval(rec.timer);
     if(rec.cancelled) return;
@@ -1187,14 +1178,11 @@ async function startRec(sessionId){
     try{ await idbPut(id, blob); }catch(e){ toast("Audio konnte nicht gespeichert werden"); return; }
     const s = state.sessions.find(x=>x.id===rec.targetId);
     if(!s) return;
-    const memo = {id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0};
-    if(rec.transcript.trim()){ memo.transcript = rec.transcript.trim(); memo.mTransAt = Date.now(); }
-    s.memos.push(memo);
+    s.memos.push({id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0});
     touch(s); save(); render();
-    toast(memo.transcript ? "Memo + Transkript gespeichert" : "Memo gespeichert · "+fmtDate(s.date));
+    toast("Memo gespeichert · "+fmtDate(s.date));
   };
   rec.mr.start();
-  startSpeech();
   $("#recBar").classList.remove("hidden");
   $("#recTime").textContent="0:00";
   rec.timer = setInterval(()=>{ $("#recTime").textContent = fmtDur(Date.now()-rec.t0); }, 500);
@@ -1271,7 +1259,8 @@ function tipsSheet(){
         <li><b>Vorlagen</b>: neue Einheit startet mit Aufwärmen/Technik/Taktik/Spielformen/Ausklang.</li>
         <li><b>„Offene Punkte übernehmen“</b>: nicht Erledigtes wandert automatisch in die nächste Einheit <i>derselben Stunde</i>.</li>
         <li><b>Nachbesprechung</b> pro Einheit + <b>Sprachmemo</b> direkt nach dem Training – vor der nächsten Stunde hörst du rein.</li>
-        <li><b>Auto-Transkript</b>: während der Aufnahme wird (wo möglich) mitgeschrieben. Unter jedem Memo ein editierbares Textfeld – auch manuell nutzbar.</li>
+        <li><b>Notiz zum Memo</b>: unter jeder Aufnahme ein kleines Textfeld für Stichworte – so weißt du auf einen Blick, worum es geht, ohne alles anhören zu müssen.</li>
+        <li><b>Unterpunkte</b>: mit <b>⇥</b> (oder Tab-Taste) einen Punkt einrücken; im leeren Feld rückt Backspace wieder aus.</li>
         <li><b>Anwesenheit</b>: bei einer Einheit mit Stunde die Namen antippen. Kader &amp; Quote in „Stunden verwalten → Termin &amp; Kader“.</li>
         <li><b>Wochenplan</b> (Menü → 🗓️ Woche): Stunden mit festem Wochentag+Uhrzeit, nach nächstem Termin sortiert, Einheit mit einem Tap anlegen.</li>
         <li><b>Zielzonen-Skizze</b> am Punkt (📐): Platz von oben, Zonen + Ballwege einzeichnen – kommt auch mit Übungen aus der Sammlung.</li>
@@ -1655,7 +1644,7 @@ function exportMarkdown(){
     }
     let g=null;
     s.items.forEach(i=>{ if((i.group||"")!==(g||"")&&i.group){ L.push("","**"+i.group+"**"); g=i.group; }
-      L.push("- ["+(i.done?"x":" ")+"] "+i.text+(i.min?" ("+i.min+"′)":"")+(i.court&&i.court.els&&i.court.els.length?" 📐":"")); });
+      L.push("  ".repeat(i.indent||0)+"- ["+(i.done?"x":" ")+"] "+i.text+(i.min?" ("+i.min+"′)":"")+(i.court&&i.court.els&&i.court.els.length?" 📐":"")); });
     if(s.note) L.push("", s.note);
     if(s.reflection) L.push("", "> Nachbesprechung: "+s.reflection);
     s.memos.forEach(m=>{ if(m.transcript) L.push("", "🎤 „"+m.transcript+"“"); });
