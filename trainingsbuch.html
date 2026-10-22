@@ -2,7 +2,7 @@
 {
   "name": "Trainingsbuch",
   "schemaVersion": 1,
-  "description": "Tennis- und Konditionstraining vorher strukturieren: angepinnte Notizen, datierte Einheiten mit abhakbaren Punkten, Vorlagen, Übungskatalog und Sprachmemos nach dem Training. Daten lokal im Browser, Backup als Datei.",
+  "description": "Tennis- und Konditionstraining planen: Stunden, Einheiten als Checkliste, Notizen und Sprachmemos. Daten lokal, Abgleich über GitHub.",
   "mcpTools": [],
   "mcpServerNames": []
 }
@@ -10,202 +10,182 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0f1115">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f4f5">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1012">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Trainingsbuch">
 <title>Trainingsbuch</title>
 <link rel="apple-touch-icon" href="icon-trainingsbuch.png">
 <link rel="icon" type="image/png" href="icon-trainingsbuch.png">
 <style>
 :root{
-  --bg:#0f1115; --bg2:#14171d; --panel:#171a20; --panel2:#1d212a; --panel3:#232833;
-  --line:#262b33; --line2:#333a45;
-  --text:#e8eaed; --dim:#98a1af; --faint:#5b6472;
-  --tennis:#38b36b; --tennis-dim:rgba(56,179,107,.14);
-  --kondi:#f0883e; --kondi-dim:rgba(240,136,62,.14);
-  --accent:#4a9eff; --accent-dim:rgba(74,158,255,.14);
-  --danger:#e5484d;
+  --bg:#f3f4f5; --surface:#ffffff; --text:#14181c; --text2:#59636d; --line:#e3e6e9; --fill:#eceff1;
+  --accent:#17824a; --accent-fg:#ffffff; --danger:#c0332c;
   --court:#356b45; --courtline:#eaf2ec;
-  --r:12px; --r-lg:18px;
-  --f:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',sans-serif;
-  --shadow:0 6px 24px rgba(0,0,0,.4);
+  --panel:var(--surface); --panel2:var(--fill); --line2:var(--line); --faint:var(--text2); --dim:var(--text2);
+  --r:14px; color-scheme:light;
 }
-[data-theme=light]{
-  --bg:#f4f5f7; --bg2:#eceef1; --panel:#ffffff; --panel2:#f7f8fa; --panel3:#eef0f3;
-  --line:#e2e5ea; --line2:#d2d7de;
-  --text:#1a1d23; --dim:#5c6472; --faint:#8b93a1;
-  --tennis:#1f9d57; --kondi:#d9741f; --accent:#2f7fe0;
-  --court:#3f8a55;
-  --shadow:0 6px 20px rgba(20,25,40,.12);
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]){
+    --bg:#0d1012; --surface:#171b1f; --text:#eceff1; --text2:#98a2ab; --line:#272d33; --fill:#21272c;
+    --accent:#3dbb70; --accent-fg:#04200f; --danger:#ef6a62; color-scheme:dark;
+  }
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--text);font-family:var(--f)}
-body{padding-bottom:120px;line-height:1.45;overscroll-behavior-y:none}
-button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none}
-input,textarea,select{font-family:inherit;font-size:16px;color:var(--text)}
-textarea{resize:none;overflow:hidden}
-::placeholder{color:var(--faint)}
+:root[data-theme=dark]{
+  --bg:#0d1012; --surface:#171b1f; --text:#eceff1; --text2:#98a2ab; --line:#272d33; --fill:#21272c;
+  --accent:#3dbb70; --accent-fg:#04200f; --danger:#ef6a62; color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none;background:var(--bg)}
+body{font:17px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;color:var(--text);background:var(--bg);min-height:100dvh;padding-bottom:calc(150px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+input,textarea,select{font:inherit;font-size:17px;color:inherit;background:transparent;border:0;outline:0;border-radius:0;-webkit-appearance:none;appearance:none}
+textarea{resize:none;overflow:hidden;display:block}
+::placeholder{color:var(--text2);opacity:.75}
 .hidden{display:none!important}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ico{display:inline-flex;align-items:center;justify-content:center;flex:none}
 
-/* ---------- Topbar ---------- */
-#topbar{
-  position:sticky;top:0;z-index:30;background:var(--bg);
-  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
-  border-bottom:1px solid var(--line);
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-}
-.brand{font-weight:700;font-size:17px;letter-spacing:.2px;white-space:nowrap}
-.brand .b-ico{margin-right:6px}
-#menuBtn{font-size:22px;width:40px;height:40px;border-radius:10px;line-height:1}
-#menuBtn:active{background:var(--panel2)}
-#syncDot{margin-left:auto;width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none;cursor:pointer}
-#syncDot[data-s=idle]{background:var(--dim)}
-#syncDot[data-s=ok]{background:var(--tennis)}
-#syncDot[data-s=busy]{background:#e5b53a;animation:pulse 1s infinite}
-#syncDot[data-s=err]{background:var(--danger)}
-.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex:1 1 auto;min-width:200px}
-.seg button{flex:1;padding:7px 4px;border-radius:999px;font-size:13px;font-weight:600;color:var(--dim);white-space:nowrap}
-.seg button.on{color:#fff;background:var(--accent)}
-.seg button.on[data-a=tennis]{background:var(--tennis)}
-.seg button.on[data-a=kondition]{background:var(--kondi)}
-[data-theme=light] .seg button.on{color:#fff}
+/* ---- Leiste oben ---- */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);padding-top:env(safe-area-inset-top)}
+.top-in{max-width:672px;margin:0 auto;height:52px;padding:0 6px;display:flex;align-items:center;justify-content:space-between}
+.top-r{display:flex;align-items:center}
+.tbtn{min-width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;gap:2px;padding:0 10px 0 6px;color:var(--accent);font-size:17px;border-radius:10px}
+.tbtn.icon{padding:0;color:var(--text)}
+.tbtn span.lbl{max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdot{width:10px;height:10px;border-radius:50%;background:var(--text2);opacity:.45;display:block}
+.sdot[data-s=ok]{background:var(--accent);opacity:1}
+.sdot[data-s=busy]{background:#d9a21b;opacity:1;animation:pulse 1s infinite}
+.sdot[data-s=err]{background:var(--danger);opacity:1}
+.sdot[data-s=idle]{opacity:.8}
+@keyframes pulse{50%{opacity:.35}}
 
-/* ---------- Search + compose ---------- */
-#searchWrap{position:relative;padding:10px 14px 0}
-#search{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 34px 10px 12px}
-#searchClear{position:absolute;right:22px;top:16px;color:var(--faint);font-size:16px;padding:6px}
-#compose{display:flex;gap:8px;padding:10px 14px 4px;align-items:center}
-#composeInput{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
-#composeMic,#composeAdd{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:0 12px;height:42px;font-size:14px;font-weight:600;white-space:nowrap}
-#composeMic{font-size:18px;padding:0 12px}
-#composeAdd{color:var(--accent);border-color:var(--accent)}
-#composeAdd:active,#composeMic:active{background:var(--panel2)}
+/* ---- Seite ---- */
+.page{max-width:640px;margin:0 auto;padding:0 16px}
+.view-in{animation:vin .22s cubic-bezier(.2,.9,.3,1)}
+@keyframes vin{from{opacity:0;transform:translateX(14px)}}
+.title{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin:6px 0 14px}
+.h2{font-size:15px;font-weight:600;color:var(--text2);margin:28px 4px 8px}
+.dim{color:var(--text2)}
+.hint{color:var(--text2);font-size:15px;margin:0 4px 12px}
 
-/* ---------- Board ---------- */
-#board{padding:12px 14px 40px;max-width:1100px;margin:0 auto}
-.sec-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);margin:18px 4px 8px}
-.sec-label:first-child{margin-top:4px}
+/* ---- Gruppen & Zeilen ---- */
+.group{background:var(--surface);border-radius:var(--r);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 16px;text-align:left;border-top:1px solid var(--line);color:var(--text)}
+.group>:first-child{border-top:0}
+.row .grow{flex:1;min-width:0}
+.row .name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .sub{font-size:15px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .sub.hot{color:var(--accent);font-weight:600}
+.row .meta{font-size:15px;color:var(--text2);flex:none}
+.row .chev{color:var(--text2);opacity:.55}
+.row.accent{color:var(--accent);font-weight:600}
+.row.danger{color:var(--danger)}
+button.row:active{background:var(--fill)}
+@media (hover:hover) and (pointer:fine){button.row:hover{background:var(--fill)}}
+.pill{font-size:13px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--fill);color:var(--text2);white-space:nowrap}
+.pill.hot{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
 
-.groupbar{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;margin:0 -2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.groupbar::-webkit-scrollbar{display:none}
-.gchip{flex:none;font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--dim);white-space:nowrap}
-.gchip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
-.gchip.ghost{color:var(--faint);border-style:dashed}
-.gchip[data-a=tennis]:not(.on){border-left:3px solid var(--tennis)}
-.gchip[data-a=kondition]:not(.on){border-left:3px solid var(--kondi)}
-.gbadge{background:var(--kondi);color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:1px 5px;margin-left:5px;vertical-align:middle}
-.gchip.on .gbadge{background:var(--bg);color:var(--text)}
-.tagrow{margin-top:-2px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;border-radius:12px;font-weight:600;transition:transform .12s ease-out,opacity .12s}
+.btn.primary{background:var(--accent);color:var(--accent-fg)}
+.btn.line{background:var(--surface);color:var(--text)}
+.btn:active{transform:scale(.98)}
+.linkbtn{color:var(--accent);font-weight:600;font-size:15px;padding:8px 0}
+.icon-btn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;color:var(--text2)}
+.icon-btn:active{background:var(--fill)}
 
-/* Pins */
-.pins{display:grid;grid-template-columns:1fr;gap:10px}
-.pin{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px}
-.pin-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.pin-head .pin-ico{opacity:.7}
-.pin-title{flex:1;font-weight:700;background:none;border:0;padding:2px 0}
-.pin-title:focus{outline:none;border-bottom:1px solid var(--line2)}
-.pin-body{width:100%;background:none;border:0;min-height:44px;line-height:1.5;font-size:15px}
-.pin-body:focus{outline:none}
-.pin-grp{font-size:11px;color:var(--faint);background:none;border:0;padding:0 0 6px;margin-top:-4px}
-.pin-grp:focus{outline:none}
-.pin .del{color:var(--faint);font-size:15px;padding:4px 6px}
-.addpin{width:100%;border:1px dashed var(--line2);background:none;border-radius:var(--r-lg);padding:12px;color:var(--dim);font-size:14px;font-weight:600}
-.addpin:active{background:var(--panel2)}
+/* ---- Eingabefelder im Fluss ---- */
+.name-in{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.02em;width:100%;padding:6px 0;margin:0 0 4px}
+.focus-in{width:100%;padding:6px 0 14px;font-size:17px}
+.slotline{color:var(--accent);font-weight:600;font-size:15px;padding:2px 0 14px;display:block}
+.date-title{position:relative;display:flex;align-items:center;gap:6px;font-size:clamp(23px,7vw,30px)}
+.date-title .date-hit{position:absolute;inset:0;opacity:0;width:100%;height:100%;font-size:16px}
+.cr{padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.cr-in{width:100%;font-size:17px;font-weight:600}
+.cr-actions{display:flex;gap:10px;align-items:center}
+.cr-actions .seg{flex:1}
+.cr-ok{background:var(--accent);color:var(--accent-fg);font-weight:600;border-radius:10px;padding:0 18px;height:40px}
 
-/* Session cards */
-.cards{display:grid;grid-template-columns:1fr;gap:10px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;border-left:3px solid var(--line2)}
-.card[data-a=tennis]{border-left-color:var(--tennis)}
-.card[data-a=kondition]{border-left-color:var(--kondi)}
-.card-head{padding:12px 14px;display:flex;flex-direction:column;gap:4px;cursor:pointer}
-.card-head .row1{display:flex;align-items:center;gap:8px}
-.chip{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:3px 7px;border-radius:999px}
-.chip.tennis{background:var(--tennis-dim);color:var(--tennis)}
-.chip.kondition{background:var(--kondi-dim);color:var(--kondi)}
-.chip.done{background:var(--panel3);color:var(--dim)}
-.chip.grp{background:var(--panel3);color:var(--text)}
-.card-date{font-weight:700;font-size:15px}
-.card-title{color:var(--dim);font-size:14px}
-.card-meta{display:flex;gap:12px;font-size:12px;color:var(--faint);flex-wrap:wrap}
-.card-meta .pg{color:var(--dim)}
-.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
-.card-tags span{font-size:10.5px;color:var(--faint);background:var(--panel3);padding:2px 7px;border-radius:999px}
-.card-body{padding:0 14px 14px;border-top:1px solid var(--line);display:none}
-.card.open .card-body{display:block}
-.card.open .card-head{border-bottom:0}
+/* ---- Notizen ---- */
+.note{padding:12px 16px 10px;border-top:1px solid var(--line)}
+.note-head{display:flex;align-items:center;gap:4px}
+.note-title{flex:1;font-weight:600;font-size:15px;padding:4px 0}
+.note textarea{width:100%;padding:4px 0 2px;min-height:30px;line-height:1.4}
 
-.fld-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
-.fld{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
-.fld label{display:block;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
-.fld input,.fld select{width:100%;background:none;border:0;padding:2px 0;font-size:14px}
-.fld input:focus,.fld select:focus{outline:none}
-.title-in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:12px 0 0;font-weight:600}
+/* ---- Checkliste ---- */
+.checklist{padding:4px 0}
+.item{display:flex;align-items:flex-start;padding-right:14px;min-height:46px}
+.item .cb{flex:none;width:48px;height:46px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.cb .box{width:22px;height:22px;border-radius:50%;border:1.6px solid color-mix(in srgb,var(--text2) 75%,transparent);display:flex;align-items:center;justify-content:center;color:var(--accent-fg);transition:background .12s,border-color .12s}
+.cb.on .box{background:var(--accent);border-color:var(--accent)}
+.cb.ghost{pointer-events:none}
+.item textarea.it{flex:1;min-width:0;padding:11px 0 9px;line-height:1.35}
+.item.done textarea.it{color:var(--text2);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--text2) 50%,transparent)}
+.item .min{flex:none;font-size:13px;color:var(--text2);padding-top:13px;margin-left:8px}
+.subhead{font-size:13px;font-weight:600;color:var(--text2);padding:12px 16px 2px}
+.gap{height:10px}
+.thumbwrap{padding:0 14px 8px 48px}
+.area{width:100%;padding:14px 16px;min-height:96px;line-height:1.45}
 
-.grp{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);margin:12px 2px 6px}
-.item{display:flex;align-items:flex-start;gap:6px;padding:3px 0}
-.item.sub{border-left:2px solid var(--line2);padding-left:8px}
-.item.sub .it-text{font-size:14px}
-.item .it-in{flex:none;width:20px;height:20px;margin-top:2px;color:var(--faint);font-size:13px;padding:0;border-radius:5px}
-.item .it-in:active{background:var(--panel3)}
-.item .cb{width:20px;height:20px;margin-top:2px;flex:none;border:1.5px solid var(--line2);border-radius:6px;display:grid;place-items:center;font-size:12px;color:transparent}
-.item.done .cb{background:var(--tennis);border-color:var(--tennis);color:#fff}
-.card[data-a=kondition] .item.done .cb{background:var(--kondi);border-color:var(--kondi)}
-.item .it-text{flex:1;background:none;border:0;padding:2px 0;line-height:1.5;font-size:15px}
-.item .it-text:focus{outline:none}
-.item .it-min{width:44px;flex:none;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 4px;font-size:12px;text-align:center;color:var(--dim)}
-.item .it-min:focus{outline:none;border-color:var(--line2)}
-.item.done .it-text{color:var(--faint);text-decoration:line-through}
-.item .mv{color:var(--faint);font-size:13px;padding:2px 4px;opacity:.6}
-.item .x{color:var(--faint);font-size:14px;padding:2px 6px}
+/* ---- Memos ---- */
+.memo{padding:12px 16px;border-top:1px solid var(--line)}
+.group>.memo:first-child{border-top:0}
+.memo-head{display:flex;align-items:center;justify-content:space-between;font-size:15px;color:var(--text2)}
+.memo audio{width:100%;height:40px;margin:6px 0 4px}
+.memo textarea{width:100%;background:var(--fill);border-radius:10px;padding:10px 12px;font-size:15px;line-height:1.45;margin-top:6px}
 
-.act-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
-.act-row button{border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--dim)}
-.act-row button:active{background:var(--panel3)}
+/* ---- Tastatur-Leiste ---- */
+.kbbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:4px 8px calc(4px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:2px}
+.kbbar button{width:48px;height:44px;border-radius:10px;color:var(--text);display:flex;align-items:center;justify-content:center}
+.kbbar button:active{background:var(--fill)}
+.kbbar .sp{width:14px}
 
-.blk-label{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);margin:14px 2px 6px}
-.note-in,.refl-in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;min-height:46px;font-size:15px;line-height:1.5}
-.refl-in{background:var(--accent-dim);border-color:transparent}
-.note-in:focus,.refl-in:focus{outline:none;border-color:var(--line2)}
+/* ---- Sheets ---- */
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.sheet-panel{position:relative;width:100%;max-width:560px;max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--bg);border-radius:20px 20px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2);animation:up .24s cubic-bezier(.2,.9,.3,1)}
+.sheet-panel::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+@keyframes up{from{transform:translateY(24px);opacity:0}}
+.sheet-title,.sheet-panel h2{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:4px 4px 10px}
+.sheet-note,.sheet-panel .sub{color:var(--text2);font-size:15px;margin:-4px 4px 12px}
+.flabel{font-size:13px;font-weight:600;color:var(--text2);margin:16px 4px 6px;display:block}
+.field{width:100%;background:var(--surface);border-radius:12px;padding:13px 14px}
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
+.seg button{flex:1;padding:8px 6px;border-radius:8px;font-size:15px;font-weight:600;color:var(--text2)}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 13px;border-radius:999px;background:var(--fill);font-size:15px;font-weight:600;color:var(--text2);white-space:nowrap}
+.chip.on{background:var(--text);color:var(--bg)}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;background:var(--surface);border-radius:12px;margin-top:8px;font-size:16px}
+.switchrow input{width:22px;height:22px;accent-color:var(--accent)}
+.sheet-grp{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.sheet-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border-radius:12px;font-weight:600;background:var(--surface);color:var(--text)}
+.sheet-btn.primary{background:var(--accent);color:var(--accent-fg)}
+.sheet-btn.danger{color:var(--danger)}
+.sheet-btn:active{transform:scale(.98)}
+.tips{font-size:15px;line-height:1.55;color:var(--text2);margin-top:14px}
+.tips b{color:var(--text)}
+.tips ul{margin:6px 0 10px 20px}
+.tips code{background:var(--fill);padding:1px 5px;border-radius:5px;font-size:13px}
+.srow{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);min-height:54px}
+.srow:first-child{border-top:0}
+.srow .grow{flex:1;min-width:0}
+.srow .t{font-weight:600}
+.srow .s{font-size:14px;color:var(--text2)}
 
-/* memos */
-.memos{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-.memo{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
-.memo audio{width:100%;height:36px}
-.memo .m-row{display:flex;align-items:center;gap:8px}
-.memo .m-label{flex:1;background:none;border:0;font-size:13px;color:var(--dim)}
-.memo .m-label:focus{outline:none;color:var(--text)}
-.memo .m-time{font-size:11px;color:var(--faint);white-space:nowrap}
-.memo .m-del{color:var(--faint);font-size:13px;padding:2px 6px}
-.recbtn{border:1px solid var(--danger);color:var(--danger);background:none;border-radius:9px;padding:9px 12px;font-size:13px;font-weight:700;margin-top:8px}
-.recbtn:active{background:rgba(229,72,77,.12)}
-
-.card-del{display:block;width:100%;margin-top:16px;color:var(--faint);font-size:12.5px;padding:8px;border-top:1px solid var(--line)}
-
-/* timeline */
-.tl-month{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--faint);margin:16px 4px 6px}
-.tl-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer}
-.tl-row .tl-d{font-weight:700;font-size:13px;width:52px;flex:none}
-.tl-row .tl-dot{width:8px;height:8px;border-radius:50%;flex:none}
-.tl-row .tl-dot.tennis{background:var(--tennis)} .tl-row .tl-dot.kondition{background:var(--kondi)}
-.tl-row .tl-t{flex:1;font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tl-row .tl-pg{font-size:12px;color:var(--faint);flex:none}
-
-/* transkript */
-.memo .m-trans{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;line-height:1.5;color:var(--dim);min-height:34px}
-.memo .m-trans:focus{outline:none;border-color:var(--line2);color:var(--text)}
-.memo .m-tlabel{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px}
-.memo .m-tr{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);border:1px solid var(--accent);border-radius:7px;padding:3px 8px}
-.memo .m-tr:disabled{opacity:.6;border-color:var(--line2);color:var(--dim)}
-
-/* anwesenheit */
-.att-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.att{font-size:13px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--dim)}
-.att.on{background:var(--tennis);color:#fff;border-color:var(--tennis)}
-.card[data-a=kondition] .att.on{background:var(--kondi);border-color:var(--kondi)}
-.att-add{font-size:13px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px dashed var(--line2);color:var(--faint)}
-.att-count{font-size:12px;color:var(--faint);margin-left:4px}
+/* ---- Toast & Aufnahme ---- */
+#toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,12px);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:15px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:90;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.recbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:70;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 8px 8px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.recbar .dot{width:10px;height:10px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite}
+.recbar #recTime{font-variant-numeric:tabular-nums;font-weight:700;min-width:44px}
+.recbar button{border-radius:999px;padding:9px 15px;font-weight:600;font-size:15px}
+#recStop{background:var(--danger);color:#fff}
+#recCancel{color:var(--text2)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 /* zielzonen-skizze */
 .court{width:100%;aspect-ratio:260/120;height:auto;display:block;border-radius:10px;background:#10301d;touch-action:none}
@@ -218,134 +198,85 @@ textarea{resize:none;overflow:hidden}
 .item .it-court{color:var(--faint);font-size:13px;padding:2px 4px}
 .item .it-court.has{color:var(--accent)}
 
-/* wochenplan */
-.wk-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
-.wk-when{flex:none;width:76px;text-align:center}
-.wk-when b{display:block;font-size:14px}
-.wk-when span{font-size:11px;color:var(--faint)}
-.wk-body{flex:1;min-width:0}
-.wk-body .wk-name{font-weight:700;font-size:14px}
-.wk-body .wk-meta{font-size:12px;color:var(--faint);margin-top:2px}
-.wk-act{display:flex;flex-direction:column;gap:4px;flex:none}
-.wk-act button{font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);white-space:nowrap}
-.wk-act button.prim{color:var(--accent);border-color:var(--accent)}
-.wk-due{color:var(--kondi)!important;font-weight:700}
-.viewseg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;margin-bottom:10px}
-.viewseg button{flex:1;padding:8px 4px;border-radius:8px;font-size:13px;font-weight:600;color:var(--dim)}
-.viewseg button.on{background:var(--accent);color:#fff}
 
-.empty{text-align:center;color:var(--faint);font-size:14px;padding:50px 20px;line-height:1.7}
-
-/* ---------- Sheet ---------- */
-.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
-.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
-.sheet-panel{position:relative;width:100%;max-width:560px;max-height:86vh;overflow-y:auto;background:var(--panel);border-radius:20px 20px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 24px);box-shadow:var(--shadow)}
-.sheet-panel h2{font-size:16px;margin-bottom:4px}
-.sheet-panel .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
-.sheet-grp{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
-.sheet-btn{width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:10px}
-.sheet-btn:active{background:var(--panel3)}
-.sheet-btn .em{font-size:18px}
-.sheet-btn small{display:block;font-weight:400;color:var(--dim);font-size:12px;margin-top:2px}
-.sheet-close{display:block;width:100%;margin-top:12px;padding:12px;color:var(--dim);font-size:14px;font-weight:600}
-.toggle-row{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:8px}
-.toggle-row input{width:20px;height:20px}
-.sheet-panel textarea.big{width:100%;min-height:180px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;line-height:1.6;overflow:auto}
-.pick{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;margin-bottom:6px;display:flex;gap:8px;align-items:flex-start}
-.pick .p-add{color:var(--accent);font-weight:700;font-size:18px;flex:none;padding:0 4px}
-.pick .p-main{flex:1}
-.pick .p-tags{font-size:11px;color:var(--faint);margin-top:2px}
-.tagbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.tagbar button{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--dim)}
-.tagbar button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.mini-form{display:flex;flex-direction:column;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
-.mini-form input{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
-.mini-form button{background:var(--accent);color:#fff;border-radius:8px;padding:9px;font-weight:700;font-size:13px}
-.mini-form label.tiny{font-size:11px;color:var(--faint);margin-top:4px}
-.tips code,.toggle-row code{background:var(--panel3);padding:1px 4px;border-radius:4px;font-size:12px}
-.cf-status{font-size:12px;color:var(--dim);margin:8px 2px}
-.tips{font-size:13.5px;line-height:1.7;color:var(--dim)}
-.tips b{color:var(--text)}
-.tips ul{margin:6px 0 12px 18px}
-
-/* ---------- Recording bar ---------- */
-.recbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:70;background:var(--panel);border:1px solid var(--line2);border-radius:999px;padding:8px 10px 8px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
-.recbar .dot{width:10px;height:10px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite}
-@keyframes pulse{50%{opacity:.3}}
-.recbar #recTime{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;min-width:44px}
-.recbar button{border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700}
-#recStop{background:var(--danger);color:#fff}
-#recCancel{color:var(--dim)}
-
-/* ---------- Toast ---------- */
-#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--panel3);border:1px solid var(--line2);color:var(--text);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:var(--shadow)}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-@media(min-width:640px){
-  .pins{grid-template-columns:1fr 1fr}
-  .cards{grid-template-columns:1fr 1fr}
-  .card.open{grid-column:1/-1}
-}
-@media(min-width:980px){
-  .pins{grid-template-columns:1fr 1fr 1fr}
-  .cards{grid-template-columns:1fr 1fr 1fr}
-}
 </style>
 </head>
 <body>
+<div id="view"></div>
 
-<header id="topbar">
-  <div class="brand"><span class="b-ico">🎾</span>Trainingsbuch</div>
-  <div class="seg" id="areaSeg">
-    <button data-a="alle" class="on">Alle</button>
-    <button data-a="tennis">🎾 Tennis</button>
-    <button data-a="kondition">💪 Kondition</button>
-  </div>
-  <span id="syncDot" data-s="off" title="Cloud-Sync" aria-label="Cloud-Sync-Status"></span>
-  <button id="menuBtn" aria-label="Menü">⋯</button>
-</header>
-
-<div id="searchWrap">
-  <input id="search" type="search" autocomplete="off" placeholder="Alles durchsuchen…">
-  <button id="searchClear" class="hidden">✕</button>
+<div id="kbbar" class="kbbar hidden" role="toolbar" aria-label="Punkt bearbeiten">
+  <button data-a="out" aria-label="Ausrücken"></button>
+  <button data-a="in" aria-label="Einrücken"></button>
+  <span class="sp"></span>
+  <button data-a="up" aria-label="Nach oben"></button>
+  <button data-a="dn" aria-label="Nach unten"></button>
+  <span class="sp"></span>
+  <button data-a="court" aria-label="Zielzonen-Skizze"></button>
+  <button data-a="del" aria-label="Punkt löschen"></button>
 </div>
-
-<div id="compose">
-  <input id="composeInput" autocomplete="off" placeholder="Schnell notieren – Enter fügt zur nächsten Einheit hinzu">
-  <button id="composeMic" aria-label="Sprachmemo aufnehmen">🎤</button>
-  <button id="composeAdd">＋ Einheit</button>
-</div>
-
-<main id="board"></main>
 
 <div id="sheet" class="sheet hidden"><div class="sheet-bg"></div><div class="sheet-panel" id="sheetPanel"></div></div>
 
 <div id="recBar" class="recbar hidden">
   <span class="dot"></span><span id="recTime">0:00</span>
-  <button id="recStop">Stopp &amp; speichern</button>
+  <button id="recStop">Stopp</button>
   <button id="recCancel">Verwerfen</button>
 </div>
 
-<div id="toast"></div>
+<div id="toast" role="status"></div>
 
 <script>
 "use strict";
 /* ============================================================
-   Trainingsbuch — Einzeldatei, offline, für GitHub Pages
-   Daten: localStorage (Struktur) + IndexedDB (Audio-Blobs)
-   Backup: Sichern/Laden als Datei
+   Trainingsbuch · Stunden → Einheiten → Checkliste
+   Daten: localStorage (Struktur) + IndexedDB (Audio)
    ============================================================ */
-
 const KEY = "trainingsbuch:v1";
 const $  = (s,r=document)=>r.querySelector(s);
 const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
 const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const todayISO = ()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
 const esc = s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function fmtDate(iso){try{return new Date(iso+"T00:00:00").toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short",year:"numeric"});}catch(e){return iso;}}
+const WEEKDAYS = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+const DAYNAMES = ["montag","dienstag","mittwoch","donnerstag","freitag","samstag","sonntag"];
+function fmtLong(iso){try{const d=new Date(iso+"T00:00:00");const o={weekday:"long",day:"numeric",month:"long"};if(d.getFullYear()!==new Date().getFullYear())o.year="numeric";return d.toLocaleDateString("de-DE",o);}catch(e){return iso;}}
+function fmtMid(iso){try{const d=new Date(iso+"T00:00:00");const o={weekday:"short",day:"numeric",month:"short"};if(d.getFullYear()!==new Date().getFullYear())o.year="2-digit";return d.toLocaleDateString("de-DE",o);}catch(e){return iso;}}
 function fmtShort(iso){try{return new Date(iso+"T00:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});}catch(e){return iso;}}
 function fmtDur(ms){const s=Math.round(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");}
-function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2200);}
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2400);}
+function autosize(t){t.style.height="auto";t.style.height=t.scrollHeight+"px";}
+
+/* ---------- DOM-Helfer ---------- */
+function h(tag,attrs,...kids){
+  const e=document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs||{})){
+    if(v==null||v===false) continue;
+    if(k==="class") e.className=v;
+    else if(k==="html") e.innerHTML=v;
+    else if(k==="value") e.value=v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2),v);
+    else e.setAttribute(k,v===true?"":v);
+  }
+  for(const c of kids.flat()){ if(c==null||c===false) continue; e.append(c.nodeType?c:document.createTextNode(String(c))); }
+  return e;
+}
+const IC={
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  chev:'<path d="M9 5l7 7-7 7"/>',
+  down:'<path d="M5 9l7 7 7-7"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  more:'<g fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></g>',
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
+  trash:'<path d="M4 7h16M9.5 11v5.5M14.5 11v5.5M6 7l1 12.5h10L18 7M9 7V4.5h6V7"/>',
+  up:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  dn:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+  indent:'<path d="M4 6h16M12 11h8M12 16h8M4 9.5L7.5 12 4 14.5"/>',
+  outdent:'<path d="M4 6h16M12 11h8M12 16h8M7.5 9.5L4 12l3.5 2.5"/>',
+  court:'<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M12 6v12M3 12h4.5M16.5 12H21"/>'
+};
+const ico=(n,s=22,w=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+$$("#kbbar button").forEach(b=>{ b.innerHTML=ico({out:"outdent",in:"indent",up:"up",dn:"dn",court:"court",del:"trash"}[b.dataset.a],22); });
 
 /* ---------- IndexedDB (Audio) ---------- */
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("trainingsbuch",1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("audio"))r.result.createObjectStore("audio");};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
@@ -355,6 +286,7 @@ async function idbDel(k){const db=await idb();return new Promise((res,rej)=>{con
 async function idbKeys(){const db=await idb();return new Promise((res,rej)=>{const q=db.transaction("audio","readonly").objectStore("audio").getAllKeys();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
 const blobToDataURL = b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b);});
 const dataURLToBlob = async d=>(await fetch(d)).blob();
+
 
 /* ============================================================
    Zielzonen-Skizze (Tennisplatz quer, Netz bei x=0.5).
@@ -444,730 +376,732 @@ function courtSheet(carrier, onSave){
   };
 }
 
-/* ---------- Vorlagen (Standard) ---------- */
-const DEFAULT_TEMPLATES = {
-  tennis: [
-    {group:"Aufwärmen", items:["Einlaufen / Mobilisation","Einschlagen längs","Kurz–lang Rhythmus"]},
-    {group:"Technik",   items:["Schwerpunkt heute: "]},
-    {group:"Taktik",    items:["Muster: "]},
-    {group:"Spielformen", items:["Aufschlag + 1","Match-Tiebreak"]},
-    {group:"Ausklang",  items:["Dehnen","Kurzes Feedback"]}
-  ],
-  kondition: [
-    {group:"Mobilisation", items:["Hüfte / Sprunggelenk / BWS"]},
-    {group:"Aktivierung",  items:["Lauf-ABC / Koordination"]},
-    {group:"Hauptteil",    items:["Schwerpunkt: "]},
-    {group:"Core / Stabi", items:[""]},
-    {group:"Cool-down",    items:["Locker auslaufen","Dehnen"]}
-  ]
-};
 
+
+/* ---------- Daten ---------- */
 function seedState(){
-  const t = todayISO();
-  const d = new Date(); d.setDate(d.getDate()-5);
-  const past = (()=>{d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);})();
-  const G = ["Stunde 1","Stunde 2","Stunde 3","Stunde 4","Stunde 5","Stunde 6","Stunde 7"]
-    .map((name,i)=>({id:uid(),name,area:"tennis",order:i,roster:[],updatedAt:Date.now()}));
-  G[0].roster = ["Anna","Ben","Clara","David"].map(n=>({id:uid(),name:n}));
-  G[0].weekday = 2; G[0].time = "17:30";
-  return {
-    v:2,
-    settings:{theme:"dark", area:"alle", view:"board", carryOver:true, group:"alle"},
-    tomb:{pin:{},session:{},drill:{},memo:{},group:{}},
-    templatesUpdatedAt:0,
-    groups:G,
-    pins:[
-      {id:uid(),area:"tennis",groupId:G[0].id,title:"Ideen",body:"- Rückhand longline stabilisieren\n- Mehr Spielformen mit Zielzonen\n- ",updatedAt:Date.now()},
-      {id:uid(),area:"tennis",groupId:G[0].id,title:"Teilnehmer",body:"Gruppe (Mi 17:00):\n- \n- \n- ",updatedAt:Date.now()},
-      {id:uid(),area:"kondition",groupId:null,title:"Ideen",body:"- Antritts-Serie vor dem Tennis\n- ",updatedAt:Date.now()},
-      {id:uid(),area:"kondition",groupId:null,title:"Teilnehmer",body:"- ",updatedAt:Date.now()}
-    ],
-    drills:[
-      {id:uid(),area:"tennis",name:"Kreuz / Longline",tags:["Technik","Kontrolle"],note:"Diagonal spielen, auf Kommando longline wechseln."},
-      {id:uid(),area:"tennis",name:"Aufschlag + 1",tags:["Taktik","Spielform"],note:"Aufschlag nach Plan, erster Ball Vorhand inside-out."},
-      {id:uid(),area:"tennis",name:"2 gegen 1",tags:["Kondition","Spielform"],note:"Einzelner läuft, Paar spielt platziert."},
-      {id:uid(),area:"tennis",name:"Return blocken",tags:["Return"],note:"Nur blocken, tief in die Mitte."},
-      {id:uid(),area:"kondition",name:"Leiter-Koordination",tags:["Koordination","Aufwärmen"],note:""},
-      {id:uid(),area:"kondition",name:"Medizinball rotatorisch",tags:["Core","Power"],note:"Wurf gegen die Wand, aus der Hüfte."},
-      {id:uid(),area:"kondition",name:"Sprint 5-10-5",tags:["Antritt","Agility"],note:""},
-      {id:uid(),area:"kondition",name:"Box Jumps",tags:["Power","Beine"],note:""}
-    ],
-    templates:JSON.parse(JSON.stringify(DEFAULT_TEMPLATES)),
-    sessions:[
-      {id:uid(),area:"tennis",groupId:G[0].id,date:past,title:"Grundlinie + Aufschlag",status:"done",
-       place:"Halle 2",durationMin:90,participants:4,
-       items:[
-        {id:uid(),text:"Einlaufen / Mobilisation",done:true,group:"Aufwärmen"},
-        {id:uid(),text:"Cross stabil, 10er Serien",done:true,group:"Technik"},
-        {id:uid(),text:"Rückhand longline – Timing",done:false,group:"Technik"},
-        {id:uid(),text:"Aufschlag: zweiter Aufschlag kicken",done:false,group:"Taktik"},
-        {id:uid(),text:"Match-Tiebreak",done:true,group:"Spielformen"}
-       ],
-       note:"Gruppe war müde, Longline-Rückhand nächste Woche nochmal.",
-       reflection:"Aufschlag-Kick hat noch nicht funktioniert – langsamer aufbauen.",
-       attend:(()=>{ const o={}; G[0].roster.slice(0,3).forEach(p=>o[p.id]=1); return o; })(),
-       memos:[], createdAt:Date.now()-4e8, updatedAt:Date.now()-4e8}
-    ]
-  };
+  return {v:3,settings:{themeMode:"auto",lastArea:"tennis",carryOver:true},
+    tomb:{pin:{},session:{},drill:{},memo:{},group:{}},templatesUpdatedAt:0,
+    groups:[],pins:[],drills:[],templates:{tennis:[],kondition:[]},sessions:[]};
 }
-
-let state = load();
-function load(){
-  try{
-    const raw = localStorage.getItem(KEY);
-    if(!raw) return seedState();
-    const s = JSON.parse(raw);
-    return ensure(s);
-  }catch(e){ console.warn(e); return seedState(); }
+function parseSlot(name){
+  const n=" "+String(name||"").toLowerCase()+" ";
+  let weekday=null, full=false;
+  for(let i=0;i<7;i++){
+    if(new RegExp("\\b"+DAYNAMES[i]+"\\b").test(n)){weekday=i;full=true;break;}
+  }
+  const m=String(name||"").match(/(\d{1,2})[:.](\d{2})/)||String(name||"").match(/(\d{1,2})\s?uhr/i);
+  let time=null;
+  if(m){const hh=+m[1],mm=m[2]&&m[2].length===2&&/[:.]/.test(m[0])?+m[2]:0;if(hh<24&&mm<60)time=String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0");}
+  if(weekday==null&&time){
+    for(let i=0;i<7;i++){ if(new RegExp("\\b"+WEEKDAYS[i].toLowerCase()+"\\.?\\b").test(n)){weekday=i;break;} }
+  }
+  return {weekday,time};
 }
 function ensure(s){
-  s.settings = Object.assign({theme:"dark",area:"alle",view:"board",carryOver:true,group:"alle"}, s.settings||{});
-  s.pins ||= []; s.drills ||= []; s.sessions ||= []; s.groups ||= [];
-  s.templates ||= JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
-  s.templatesUpdatedAt ||= 0;
-  s.tomb = Object.assign({pin:{},session:{},drill:{},memo:{},group:{}}, s.tomb||{});
-  for(const g of ["pin","session","drill","memo","group"]) s.tomb[g] ||= {};
-  s.groups.forEach((g,i)=>{ g.order = g.order ?? i; g.roster ||= []; });
-  s.sessions.forEach(x=>{ x.items ||= []; x.memos ||= []; x.tags ||= []; x.attend ||= {}; x.items.forEach(i=>{ i.id ||= uid(); i.indent = Math.max(0,Math.min(2, i.indent||0)); }); });
-  s.pins.forEach(p=>{ p.groupId = p.groupId || null; });
+  s.settings=Object.assign({themeMode:"auto",lastArea:"tennis",carryOver:true},s.settings||{});
+  s.pins||=[]; s.drills||=[]; s.sessions||=[]; s.groups||=[];
+  s.templates||={tennis:[],kondition:[]}; s.templatesUpdatedAt||=0;
+  s.tomb=Object.assign({pin:{},session:{},drill:{},memo:{},group:{}},s.tomb||{});
+  for(const g of ["pin","session","drill","memo","group"]) s.tomb[g]||={};
+  s.groups.forEach((g,i)=>{
+    g.order=g.order??i; g.roster||=[];
+    if(!g.slotParsed){ g.slotParsed=true; if(g.weekday==null){ const p=parseSlot(g.name); if(p.weekday!=null){g.weekday=p.weekday; if(p.time&&!g.time)g.time=p.time;} } }
+  });
+  s.sessions.forEach(x=>{
+    x.items||=[]; x.memos||=[]; x.tags||=[]; x.attend||={};
+    x.items.forEach(i=>{ i.id||=uid(); i.indent=Math.max(0,Math.min(2,i.indent||0)); });
+  });
+  s.pins.forEach(p=>{ p.groupId=p.groupId||null; });
   return s;
 }
-const WEEKDAYS = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+let state=load();
+function load(){
+  try{ const raw=localStorage.getItem(KEY); return raw?ensure(JSON.parse(raw)):seedState(); }
+  catch(e){ console.warn(e); return seedState(); }
+}
+let saveT=null, dirty=false;
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(state)); }
-  catch(e){ toast("Speicher voll – bitte Backup als Datei sichern"); }
+  dirty=false; clearTimeout(saveT);
+  try{ localStorage.setItem(KEY,JSON.stringify(state)); }
+  catch(e){ toast("Speicher voll – bitte Backup sichern"); }
   if(!save._silent && typeof queueCloud==="function") queueCloud();
 }
+function saveSoft(){ dirty=true; clearTimeout(saveT); saveT=setTimeout(save,350); }
+function flushSave(){ if(dirty) save(); }
+addEventListener("pagehide",flushSave);
+document.addEventListener("visibilitychange",()=>{ if(document.hidden) flushSave(); });
+const touch=o=>{ o.updatedAt=Date.now(); };
 
-/* ---------- Ansicht-Status ---------- */
-const openIds = new Set();
+const grp=id=>state.groups.find(g=>g.id===id);
+const sess=id=>state.sessions.find(s=>s.id===id);
+const sessionsOf=gid=>state.sessions.filter(s=>s.groupId===gid).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||0)-(a.createdAt||0));
+const openCount=s=>s.items.filter(i=>!i.done&&String(i.text||"").trim()).length;
+const doneCount=s=>s.items.filter(i=>i.done).length;
 
-/* ---------- Rendering ---------- */
-const board = $("#board");
-
-function groupsForArea(a){
-  return state.groups
-    .filter(g=>a==="alle"||g.area===a)
-    .slice().sort((x,y)=>(x.order??0)-(y.order??0) || (x.name||"").localeCompare(y.name||""));
+function nextOcc(g,fromISO){
+  const base=fromISO?new Date(fromISO+"T00:00:00"):new Date();
+  const js=(g.weekday+1)%7; const delta=(js-base.getDay()+7)%7;
+  const d=new Date(base); d.setHours(0,0,0,0); d.setDate(base.getDate()+delta);
+  d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+  return {iso:d.toISOString().slice(0,10),delta};
 }
-function groupName(id){ const g=state.groups.find(x=>x.id===id); return g?g.name:""; }
-function activeGroup(){
-  const g = state.settings.group;
-  if(!g || g==="alle") return "alle";
-  const obj = state.groups.find(x=>x.id===g);
-  if(!obj) return "alle";
-  if(state.settings.area!=="alle" && obj.area!==state.settings.area) return "alle";
-  return g;
+function nextPlanDate(g){
+  if(g.weekday==null) return todayISO();
+  let {iso}=nextOcc(g);
+  const have=new Set(sessionsOf(g.id).map(s=>s.date));
+  for(let i=0;i<26&&have.has(iso);i++){ const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+7); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); iso=d.toISOString().slice(0,10); }
+  return iso;
 }
-
-function visibleSessions(){
-  const a = state.settings.area;
-  const grp = activeGroup();
-  const q = ($("#search").value||"").trim().toLowerCase();
-  const tag = state.settings.tag;
-  let list = state.sessions.slice();
-  if(a!=="alle") list = list.filter(s=>s.area===a);
-  if(grp!=="alle") list = list.filter(s=>s.groupId===grp);
-  if(tag && tag!=="alle") list = list.filter(s=>(s.tags||[]).includes(tag));
-  if(q){
-    list = list.filter(s=>{
-      const hay = [s.date, fmtDate(s.date), s.title, s.note, s.reflection, (s.tags||[]).join(" "),
-        ...s.items.map(i=>i.text), ...s.items.map(i=>i.group||"")].join(" ").toLowerCase();
-      return hay.includes(q);
-    });
-  }
-  list.sort((x,y)=> (y.date||"").localeCompare(x.date||"") || (y.createdAt||0)-(x.createdAt||0));
-  return list;
+function slotInfo(g){
+  if(g.weekday==null) return null;
+  const {delta}=nextOcc(g);
+  const day=delta===0?"Heute":delta===1?"Morgen":WEEKDAYS[g.weekday];
+  return {text:day+(g.time?" "+g.time:""),hot:delta<=1,delta};
 }
-function visiblePins(){
-  const a = state.settings.area;
-  const grp = activeGroup();
-  const q = ($("#search").value||"").trim().toLowerCase();
-  let list = state.pins.slice();
-  if(a!=="alle") list = list.filter(p=>p.area===a);
-  list = grp==="alle" ? list.filter(p=>!p.groupId) : list.filter(p=>p.groupId===grp);
-  if(q) list = list.filter(p=>(p.title+" "+p.body).toLowerCase().includes(q));
-  return list;
+function bySlot(a,b){
+  const k=g=>g.weekday!=null?(nextOcc(g).delta*1440+(g.time?(+g.time.slice(0,2))*60+(+g.time.slice(3,5)):0)):1e9+(g.order||0);
+  return k(a)-k(b)||(a.order||0)-(b.order||0);
+}
+function carryOverInto(s){
+  const cand=state.sessions.filter(x=>x.id!==s.id&&x.groupId===s.groupId&&(x.date||"")<=(s.date||"9999"));
+  const prev=cand.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||0)-(a.createdAt||0))[0];
+  if(!prev) return 0;
+  const open=prev.items.filter(i=>!i.done&&String(i.text||"").trim());
+  if(!open.length) return 0;
+  const g="Offen aus "+fmtShort(prev.date);
+  open.forEach(i=>s.items.push({id:uid(),text:i.text,done:false,group:g,indent:i.indent||0}));
+  touch(s); return open.length;
 }
 
+/* ---------- Navigation ---------- */
+const view=$("#view"), sheet=$("#sheet"), sheetPanel=$("#sheetPanel");
+let lastPath=null, lastScroll=0, scrollMemo={}, ignoreHash=null;
+const path=()=>(location.hash||"#/").slice(1)||"/";
+addEventListener("scroll",()=>{lastScroll=scrollY;},{passive:true});
+function go(p){
+  scrollMemo[lastPath]=lastScroll;
+  if(path()!==p){ ignoreHash=p; location.hash="#"+p; }
+  render();
+}
+addEventListener("hashchange",()=>{
+  if(ignoreHash&&path()===ignoreHash){ ignoreHash=null; return; }
+  ignoreHash=null; flushSave(); scrollMemo[lastPath]=lastScroll; render();
+});
 function render(){
-  const a = state.settings.area;
-  $$("#areaSeg button").forEach(b=>b.classList.toggle("on", b.dataset.a===a));
-  document.documentElement.dataset.theme = state.settings.theme;
-  $("#searchClear").classList.toggle("hidden", !$("#search").value);
-
-  board.innerHTML = "";
-  if(state.settings.view==="woche"){ renderWoche(); return; }
-  board.appendChild(groupBar());
-  const tb = tagBar(); if(tb) board.appendChild(tb);
-  if(state.settings.view==="timeline"){ renderTimeline(); return; }
-
-  // Pins
-  const pins = visiblePins();
-  const curGrp = activeGroup();
-  const grpObj = curGrp!=="alle" ? state.groups.find(g=>g.id===curGrp) : null;
-  const pl = document.createElement("div"); pl.className="sec-label";
-  pl.textContent = grpObj ? "Angepinnt – "+grpObj.name : "Angepinnt – Allgemein";
-  board.appendChild(pl);
-  const pc = document.createElement("div"); pc.className="pins";
-  pins.forEach(p=>pc.appendChild(pinEl(p)));
-  const addP = document.createElement("button");
-  addP.className="addpin"; addP.textContent = grpObj ? "＋ Notiz für „"+grpObj.name+"“ anpinnen" : "＋ allgemeine Notiz anpinnen";
-  addP.onclick=()=>{
-    const area = a==="alle" ? (grpObj ? grpObj.area : "tennis") : a;
-    state.pins.push({id:uid(),area,groupId:grpObj?grpObj.id:null,title:"Neue Notiz",body:"",updatedAt:Date.now()}); save(); render();
-  };
-  pc.appendChild(addP);
-  board.appendChild(pc);
-
-  // Sessions
-  const sl = document.createElement("div"); sl.className="sec-label";
-  sl.textContent = "Einheiten";
-  board.appendChild(sl);
-  const sessions = visibleSessions();
-  if(!sessions.length){
-    const e=document.createElement("div"); e.className="empty";
-    e.innerHTML = "Noch keine Einheiten.<br>Tippe auf <b>＋ Einheit</b>, um die nächste Stunde zu planen.";
-    board.appendChild(e);
-  }else{
-    const cc=document.createElement("div"); cc.className="cards";
-    sessions.forEach(s=>cc.appendChild(cardEl(s)));
-    board.appendChild(cc);
-  }
+  kbHandler=null; hideBar(true);
+  const p=path(), parts=p.split("/").filter(Boolean);
+  let node, canon="/";
+  if(parts[0]==="s"&&grp(parts[1])){ node=stundeView(grp(parts[1])); canon=p; }
+  else if(parts[0]==="e"&&sess(parts[1])){ node=einheitView(sess(parts[1])); canon=p; }
+  else node=homeView();
+  const same=(lastPath===canon);
+  const y=same?scrollY:(scrollMemo[canon]||0);
+  if(!same) node.classList.add("view-in");
+  view.replaceChildren(node);
+  if(canon!==p) history.replaceState(null,"","#"+canon);
+  lastPath=canon;
+  if(node.__after) node.__after();
+  scrollTo(0,y);
 }
 
-function sessionTags(){
-  const a=state.settings.area, set=new Set();
-  state.sessions.filter(s=>a==="alle"||s.area===a).forEach(s=>(s.tags||[]).forEach(t=>t&&set.add(t)));
-  return [...set].sort((x,y)=>x.localeCompare(y));
-}
-function tagBar(){
-  const tags = sessionTags();
-  if(!tags.length) return null;
-  const cur = state.settings.tag || "alle";
-  if(cur!=="alle" && !tags.includes(cur)) state.settings.tag="alle";
-  const wrap=document.createElement("div"); wrap.className="groupbar tagrow";
-  const mk=(label,val)=>{ const b=document.createElement("button");
-    b.className="gchip"+(val===(state.settings.tag||"alle")?" on":"");
-    b.textContent=label; b.onclick=()=>{ state.settings.tag=val; save(); render(); }; return b; };
-  wrap.appendChild(mk("alle Schwerpunkte","alle"));
-  tags.forEach(t=>wrap.appendChild(mk("＃"+t,t)));
-  return wrap;
-}
-
-function groupOpenCount(gid){
-  const last = state.sessions.filter(s=>s.groupId===gid)
-    .sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdAt||0)-(a.createdAt||0))[0];
-  if(!last) return 0;
-  return last.items.filter(i=>!i.done && i.text.trim()).length;
-}
-
-function groupBar(){
-  const wrap = document.createElement("div"); wrap.className="groupbar";
-  const cur = activeGroup();
-  const mk = (label,val,cls)=>{
-    const b=document.createElement("button");
-    b.className = "gchip"+(val===cur?" on":"")+(cls?" "+cls:"");
-    b.textContent = label;
-    b.onclick=()=>{ state.settings.group = val; save(); render(); };
-    return b;
-  };
-  wrap.appendChild(mk("Alle Stunden","alle"));
-  groupsForArea(state.settings.area).forEach(g=>{
-    const b = mk(g.name, g.id);
-    if(state.settings.area==="alle") b.dataset.a = g.area;
-    const oc = groupOpenCount(g.id);
-    if(oc){ const s=document.createElement("sup"); s.className="gbadge"; s.textContent=oc; s.title=oc+" offene Punkte in der letzten Einheit"; b.appendChild(s); }
-    wrap.appendChild(b);
+/* ---------- Sheets ---------- */
+let sheetOnClose=null;
+function openSheet(html,onClose){ sheetPanel.innerHTML=html; sheetOnClose=onClose||null; sheet.classList.remove("hidden"); sheetPanel.scrollTop=0; }
+function closeSheet(){ sheet.classList.add("hidden"); sheetPanel.innerHTML=""; const f=sheetOnClose; sheetOnClose=null; if(f) f(); }
+$(".sheet-bg",sheet).addEventListener("click",closeSheet);
+addEventListener("keydown",e=>{ if(e.key==="Escape"&&!sheet.classList.contains("hidden")) closeSheet(); });
+function menuSheet(title,items,onClose){
+  openSheet(`<div class="sheet-title">${esc(title)}</div><div class="group" id="mlist"></div>`,onClose);
+  const box=$("#mlist",sheetPanel);
+  items.filter(Boolean).forEach(it=>{
+    const b=h("button",{class:"row"+(it.danger?" danger":"")},
+      h("span",{class:"grow"},h("div",{class:"name"},it.label),it.sub?h("div",{class:"sub"},it.sub):null),
+      it.meta?h("span",{class:"meta"},it.meta):null);
+    b.addEventListener("click",it.fn);
+    box.append(b);
   });
-  const add=document.createElement("button");
-  add.className="gchip ghost"; add.textContent="＋ Stunde";
-  add.onclick=()=>addGroupSheet();
-  wrap.appendChild(add);
-  const edit=document.createElement("button");
-  edit.className="gchip ghost"; edit.textContent="✏︎";
-  edit.title="Stunden verwalten";
-  edit.onclick=()=>groupManageSheet();
-  wrap.appendChild(edit);
-  return wrap;
 }
 
-function pinEl(p){
-  const el = document.createElement("div"); el.className="pin";
-  const opts = ['<option value="">— allgemein —</option>']
-    .concat(groupsForArea(p.area).map(g=>`<option value="${g.id}"${p.groupId===g.id?" selected":""}>${esc(g.name)}</option>`))
-    .join("");
-  el.innerHTML = `
-    <div class="pin-head">
-      <span class="pin-ico">📌</span>
-      <input class="pin-title" value="${esc(p.title)}">
-      <button class="del">✕</button>
-    </div>
-    <select class="pin-grp">${opts}</select>
-    <textarea class="pin-body" placeholder="Text…">${esc(p.body)}</textarea>`;
-  const ti = $(".pin-title",el), bo = $(".pin-body",el), gs = $(".pin-grp",el);
-  ti.oninput = ()=>{ p.title=ti.value; p.updatedAt=Date.now(); save(); };
-  bo.oninput = ()=>{ p.body=bo.value; p.updatedAt=Date.now(); autosize(bo); save(); };
-  gs.onchange = ()=>{ p.groupId = gs.value || null; p.updatedAt=Date.now(); save(); render(); };
-  $(".del",el).onclick = ()=>{ if(confirm("Notiz löschen?")){ state.tomb.pin[p.id]=Date.now(); state.pins=state.pins.filter(x=>x.id!==p.id); save(); render(); } };
-  requestAnimationFrame(()=>autosize(bo));
+/* ---------- Theme ---------- */
+function applyTheme(){
+  const m=state.settings.themeMode;
+  if(m==="light"||m==="dark") document.documentElement.dataset.theme=m; else delete document.documentElement.dataset.theme;
+}
+function cycleTheme(){
+  const o=["auto","light","dark"]; const m=state.settings.themeMode||"auto";
+  state.settings.themeMode=o[(o.indexOf(m)+1)%3]; save(); applyTheme(); homeMenu();
+}
+
+/* ---------- Leiste ---------- */
+let dotState={s:"off",t:"Cloud-Sync aus"};
+function topbar(o){
+  const left=o.back
+    ? h("button",{class:"tbtn","aria-label":"Zurück",html:ico("back",24,2)+'<span class="lbl">'+esc(o.back.label)+'</span>',onclick:()=>go(o.back.href)})
+    : h("span");
+  return h("header",{class:"top"},h("div",{class:"top-in"},left,h("div",{class:"top-r"},...(o.right||[]))));
+}
+const moreBtn=fn=>h("button",{class:"tbtn icon","aria-label":"Mehr",html:ico("more"),onclick:fn});
+function syncBtn(){
+  const b=h("button",{class:"tbtn icon","aria-label":"Cloud-Sync",onclick:cloudSheet});
+  b.innerHTML='<span class="sdot" id="syncDot" data-s="'+dotState.s+'" title="'+esc(dotState.t)+'"></span>';
+  return b;
+}
+
+/* ---------- Notizen ---------- */
+function noteEl(p){
+  const ti=h("input",{class:"note-title",value:p.title||"",placeholder:"Titel","aria-label":"Titel der Notiz",autocomplete:"off",enterkeyhint:"next"});
+  const ta=h("textarea",{rows:"1",placeholder:"Notiz …","aria-label":"Notiz",enterkeyhint:"enter"}); ta.value=p.body||"";
+  ti.addEventListener("input",()=>{p.title=ti.value;touch(p);saveSoft();});
+  ti.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();ta.focus();} });
+  ta.addEventListener("input",()=>{p.body=ta.value;touch(p);autosize(ta);saveSoft();});
+  const del=h("button",{class:"icon-btn","aria-label":"Notiz löschen",html:ico("trash",19),onclick:()=>{
+    if((p.body||"").trim()&&!confirm("Notiz „"+(p.title||"ohne Titel")+"“ löschen?")) return;
+    state.tomb.pin[p.id]=Date.now(); state.pins=state.pins.filter(x=>x.id!==p.id); save(); render();
+  }});
+  const el=h("div",{class:"note"},h("div",{class:"note-head"},ti,del),ta);
+  el.__fit=()=>autosize(ta);
   return el;
 }
-function autosize(t){ t.style.height="auto"; t.style.height=t.scrollHeight+"px"; }
+function notesBlock(page,gid,area){
+  const pins=state.pins.filter(p=>(p.groupId||null)===gid);
+  const box=h("div",{class:"group"});
+  pins.forEach(p=>box.append(noteEl(p)));
+  box.append(h("button",{class:"row accent",onclick:()=>{
+    const p={id:uid(),area:area||"tennis",groupId:gid,title:"",body:"",updatedAt:Date.now()};
+    state.pins.push(p); save(); notesFocus=p.id; render();
+  }},h("span",{class:"ico",html:ico("plus",20)}),"Notiz hinzufügen"));
+  page.append(box);
+  return box;
+}
+let notesFocus=null;
 
-function cardEl(s){
-  const el = document.createElement("div");
-  el.className = "card" + (openIds.has(s.id)?" open":"");
-  el.dataset.a = s.area;
-  const done = s.items.filter(i=>i.done).length;
-  const total = s.items.length;
-  const planMin = s.items.reduce((n,i)=>n+(+i.min||0),0);
-  const head = document.createElement("div"); head.className="card-head";
-  head.innerHTML = `
-    <div class="row1">
-      <span class="chip ${s.area}">${s.area==="tennis"?"Tennis":"Kondition"}</span>
-      ${s.groupId&&groupName(s.groupId)?`<span class="chip grp">${esc(groupName(s.groupId))}</span>`:""}
-      ${s.status==="done"?'<span class="chip done">erledigt</span>':""}
-      <span class="card-date">${fmtDate(s.date)}</span>
-    </div>
-    ${s.title?`<div class="card-title">${esc(s.title)}</div>`:""}
-    ${(s.tags||[]).length?`<div class="card-tags">${s.tags.map(t=>`<span>＃${esc(t)}</span>`).join("")}</div>`:""}
-    <div class="card-meta">
-      ${total?`<span class="pg">${done}/${total} Punkte</span>`:""}
-      ${planMin?`<span>≈ ${planMin}′</span>`:(s.durationMin?`<span>${s.durationMin} min</span>`:"")}
-      ${s.memos.length?`<span>🎤 ${s.memos.length}</span>`:""}
-      ${(()=>{ const g=state.groups.find(x=>x.id===s.groupId); const p=Object.keys(s.attend||{}).length;
-        return (g&&g.roster&&g.roster.length&&p)?`<span>👥 ${p}/${g.roster.length}</span>`:""; })()}
-      ${s.items.some(i=>i.court&&i.court.els&&i.court.els.length)?`<span>📐</span>`:""}
-      ${s.place?`<span>${esc(s.place)}</span>`:""}
-    </div>`;
-  head.onclick = ()=>{ if(openIds.has(s.id))openIds.delete(s.id); else openIds.add(s.id); render(); };
-  el.appendChild(head);
-
-  if(openIds.has(s.id)){
-    const body = document.createElement("div"); body.className="card-body";
-    body.appendChild(sessionEditor(s));
-    el.appendChild(body);
+/* ---------- Start: Stunden ---------- */
+let creating=false, newArea=null, focusCreator=false, showArchive=false;
+function stundeRow(g){
+  const ses=sessionsOf(g.id), last=ses[0], open=last?openCount(last):0, sl=slotInfo(g);
+  const subs=[], dup=parseSlot(g.name).weekday!=null;   // Name nennt den Termin schon -> nicht wiederholen
+  if(sl&&sl.hot) subs.push(h("span",{class:"hot"},dup?sl.text.split(" ")[0]:sl.text));
+  else if(sl&&!dup) subs.push(h("span",{},sl.text));
+  if(g.area==="kondition") subs.push(h("span",{},(subs.length?" · ":"")+"Kondition"));
+  if(!subs.length||(dup&&!(sl&&sl.hot)&&g.area!=="kondition")) subs.push(h("span",{},(subs.length?" · ":"")+(last?"zuletzt "+fmtMid(last.date):"Noch keine Einheit")));
+  const b=h("button",{class:"row"},
+    h("span",{class:"grow"},h("div",{class:"name"},g.name),h("div",{class:"sub"+(sl&&sl.hot?" hot":"")},...subs)),
+    open?h("span",{class:"pill hot"},open+" offen"):null,
+    h("span",{class:"ico chev",html:ico("chev",20)}));
+  b.addEventListener("click",()=>go("/s/"+g.id));
+  return b;
+}
+function creatorRow(first){
+  let area=newArea||state.settings.lastArea||"tennis";
+  const inp=h("input",{class:"cr-in",placeholder:"z. B. Di 17:30 Herren",autocomplete:"off",autocapitalize:"words",enterkeyhint:"done","aria-label":"Name der Stunde"});
+  const bT=h("button",{class:area==="tennis"?"on":""},"Tennis"), bK=h("button",{class:area==="kondition"?"on":""},"Kondition");
+  const setA=a=>{area=a;newArea=a;bT.classList.toggle("on",a==="tennis");bK.classList.toggle("on",a==="kondition");};
+  bT.addEventListener("click",()=>setA("tennis")); bK.addEventListener("click",()=>setA("kondition"));
+  const create=()=>{ const name=inp.value.trim(); if(!name){inp.focus();return;} createStunde(name,area); };
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.isComposing){e.preventDefault();create();} });
+  const ok=h("button",{class:"cr-ok",onclick:create},"Anlegen");
+  const row=h("div",{class:"cr"},inp,h("div",{class:"cr-actions"},h("div",{class:"seg"},bT,bK),ok));
+  row.__focus=()=>inp.focus();
+  return row;
+}
+function createStunde(name,area){
+  const slot=parseSlot(name), now=Date.now();
+  const g={id:uid(),name,area,order:Math.max(-1,...state.groups.map(x=>x.order??0))+1,updatedAt:now,roster:[],slotParsed:true};
+  if(slot.weekday!=null){ g.weekday=slot.weekday; if(slot.time) g.time=slot.time; }
+  state.groups.push(g);
+  ["Teilnehmer","Ideen"].forEach(t=>state.pins.push({id:uid(),area,groupId:g.id,title:t,body:"",updatedAt:now}));
+  state.settings.lastArea=area; creating=false; newArea=null;
+  save(); go("/s/"+g.id);
+}
+function homeView(){
+  const root=h("div");
+  root.append(topbar({right:[syncBtn(),moreBtn(homeMenu)]}));
+  const page=h("main",{class:"page"}); root.append(page);
+  page.append(h("h1",{class:"title"},"Stunden"));
+  const act=state.groups.filter(g=>!g.archived).sort(bySlot);
+  if(!act.length) page.append(h("p",{class:"hint"},"Lege deine erste Stunde an – Wochentag und Uhrzeit im Namen werden erkannt, z. B. „Di 17:30 Herren“."));
+  const gr=h("div",{class:"group"}); page.append(gr);
+  act.forEach(g=>gr.append(stundeRow(g)));
+  let cr=null;
+  if(creating||!act.length){ cr=creatorRow(); gr.append(cr); }
+  else gr.append(h("button",{class:"row accent",onclick:()=>{creating=true;focusCreator=true;render();}},h("span",{class:"ico",html:ico("plus",20)}),"Neue Stunde"));
+  const arch=state.groups.filter(g=>g.archived).sort(bySlot);
+  if(arch.length){
+    page.append(h("button",{class:"linkbtn",style:"margin-top:18px",onclick:()=>{showArchive=!showArchive;render();}},(showArchive?"Archiv ausblenden":"Archiv anzeigen")+" ("+arch.length+")"));
+    if(showArchive){ const ag=h("div",{class:"group",style:"margin-top:6px"}); arch.forEach(g=>ag.append(stundeRow(g))); page.append(ag); }
   }
-  return el;
+  const legacy=state.pins.filter(p=>!p.groupId);
+  if(legacy.length){ page.append(h("div",{class:"h2"},"Allgemeine Notizen")); const nb=notesBlock(page,null,"tennis"); }
+  root.__after=()=>{
+    $$("textarea",root).forEach(autosize);
+    if(cr&&focusCreator) cr.__focus();
+    focusCreator=false;
+  };
+  return root;
+}
+function homeMenu(){
+  const tm=state.settings.themeMode||"auto";
+  menuSheet("Einstellungen",[
+    {label:"Cloud-Sync",sub:CFG.on()?"Aktiv – Handy und Mac abgleichen":"Über GitHub einrichten",fn:cloudSheet},
+    {label:"Transkription",sub:STT.key()?"Aktiv ("+(STT.prov()==="groq"?"Groq":"OpenAI")+")":"Sprachmemos automatisch in Text",fn:sttSheet},
+    {label:"Erscheinungsbild",sub:"Tippen zum Wechseln",meta:{auto:"Automatisch",light:"Hell",dark:"Dunkel"}[tm],fn:cycleTheme},
+    {label:"Backup sichern",sub:"Alles inkl. Sprachmemos als Datei",fn:exportJSON},
+    {label:"Backup laden",fn:importJSON}
+  ]);
 }
 
-function sessionEditor(s){
-  const wrap = document.createElement("div");
+/* ---------- Stunde ---------- */
+function stundeView(g){
+  const root=h("div");
+  root.append(topbar({back:{label:"Stunden",href:"/"},right:[moreBtn(()=>stundeSheet(g))]}));
+  const page=h("main",{class:"page"}); root.append(page);
+  const nm=h("input",{class:"name-in",value:g.name,"aria-label":"Name der Stunde",autocomplete:"off",enterkeyhint:"done"});
+  nm.addEventListener("input",()=>{g.name=nm.value;touch(g);saveSoft();});
+  nm.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();nm.blur();} });
+  nm.addEventListener("blur",()=>{ if(!nm.value.trim()){nm.value=g.name="Stunde";touch(g);save();} });
+  page.append(nm);
+  const sl=slotInfo(g);
+  page.append(h("button",{class:"slotline",onclick:()=>stundeSheet(g)},
+    (sl?sl.text:"Termin festlegen")+(g.area==="kondition"?" · Kondition":"")));
 
-  // Titel
-  const title = document.createElement("input");
-  title.className="title-in"; title.placeholder="Fokus / Titel der Einheit"; title.value=s.title||"";
-  title.oninput=()=>{ s.title=title.value; touch(s); saveSoft(); };
-  wrap.appendChild(title);
+  const iso=nextPlanDate(g);
+  page.append(h("button",{class:"btn primary",onclick:()=>createEinheit(g)},h("span",{class:"ico",html:ico("plus",20,2.2)}),"Neue Einheit · "+fmtMid(iso)));
 
-  // Stunde / Gruppe
-  const gsel = document.createElement("select");
-  gsel.className="title-in";
-  gsel.innerHTML = ['<option value="">— ohne Stunde —</option>']
-    .concat(groupsForArea(s.area).map(g=>`<option value="${g.id}"${s.groupId===g.id?" selected":""}>${esc(g.name)}</option>`))
-    .join("");
-  gsel.onchange = ()=>{ s.groupId = gsel.value || null; touch(s); save(); render(); };
-  wrap.appendChild(gsel);
+  page.append(h("div",{class:"h2"},"Notizen"));
+  const nb=notesBlock(page,g.id,g.area);
 
-  // Schwerpunkte / Tags
-  const tin = document.createElement("input");
-  tin.className="title-in"; tin.placeholder="Schwerpunkte, mit Komma (z. B. Aufschlag, Taktik)";
-  tin.value=(s.tags||[]).join(", ");
-  tin.oninput=()=>{ s.tags = tin.value.split(",").map(x=>x.trim()).filter(Boolean); touch(s); saveSoft(); };
-  tin.onblur=()=>render();
-  wrap.appendChild(tin);
-
-  // Felder
-  const fg = document.createElement("div"); fg.className="fld-grid";
-  fg.innerHTML = `
-    <div class="fld"><label>Datum</label><input type="date" data-k="date" value="${s.date}"></div>
-    <div class="fld"><label>Status</label><select data-k="status">
-       <option value="planned"${s.status!=="done"?" selected":""}>geplant</option>
-       <option value="done"${s.status==="done"?" selected":""}>erledigt</option></select></div>
-    <div class="fld"><label>Ort</label><input data-k="place" value="${esc(s.place||"")}" placeholder="Halle / Platz"></div>
-    <div class="fld"><label>Dauer (min)</label><input data-k="durationMin" type="number" inputmode="numeric" value="${s.durationMin||""}"></div>
-    <div class="fld"><label>Teilnehmer</label><input data-k="participants" type="number" inputmode="numeric" value="${s.participants||""}"></div>
-    <div class="fld"><label>Bereich</label><select data-k="area">
-       <option value="tennis"${s.area==="tennis"?" selected":""}>🎾 Tennis</option>
-       <option value="kondition"${s.area==="kondition"?" selected":""}>💪 Kondition</option></select></div>`;
-  $$("input,select",fg).forEach(inp=>{
-    inp.onchange = ()=>{
-      const k=inp.dataset.k;
-      s[k] = (k==="durationMin"||k==="participants") ? (parseInt(inp.value)||"") : inp.value;
-      if(k==="area"){ const g=state.groups.find(x=>x.id===s.groupId); if(g && g.area!==s.area) s.groupId=null; }
-      touch(s); save();
-      if(k==="area"||k==="status"||k==="date") render();
-    };
-  });
-  wrap.appendChild(fg);
-
-  // Anwesenheit (wenn Stunde mit Kader)
-  const grp = state.groups.find(x=>x.id===s.groupId);
-  if(grp){
-    const lbl = mkLabel("Anwesenheit");
-    const cnt = document.createElement("span"); cnt.className="att-count"; lbl.appendChild(cnt);
-    wrap.appendChild(lbl);
-    const aw = document.createElement("div"); aw.className="att-wrap";
-    const setCnt=()=>{ const p=Object.keys(s.attend||{}).length; cnt.textContent=(grp.roster||[]).length?"  "+p+" / "+grp.roster.length+" da":""; };
-    const drawAtt=()=>{
-      aw.innerHTML="";
-      (grp.roster||[]).forEach(pl=>{
-        const b=document.createElement("button");
-        b.className="att"+(s.attend&&s.attend[pl.id]?" on":"");
-        b.textContent=pl.name;
-        b.onclick=()=>{ s.attend=s.attend||{}; if(s.attend[pl.id]) delete s.attend[pl.id]; else s.attend[pl.id]=1; touch(s); save(); drawAtt(); setCnt(); };
-        aw.appendChild(b);
-      });
-      const add=document.createElement("button"); add.className="att-add"; add.textContent="＋ Person";
-      add.onclick=()=>{ const n=prompt("Name:"); if(!n||!n.trim()) return;
-        const pid=uid(); grp.roster=grp.roster||[]; grp.roster.push({id:pid,name:n.trim()}); grp.updatedAt=Date.now();
-        s.attend=s.attend||{}; s.attend[pid]=1; touch(s); save(); drawAtt(); setCnt(); };
-      aw.appendChild(add);
-    };
-    drawAtt(); setCnt();
-    wrap.appendChild(aw);
-  }
-
-  // Punkte (gruppiert)
-  const sumLbl = document.createElement("div"); sumLbl.className="blk-label";
-  wrap.appendChild(sumLbl);
-  const list = document.createElement("div");
-  const refreshSum = ()=>{
-    const mins = s.items.reduce((n,i)=>n+(+i.min||0),0);
-    sumLbl.textContent = "Punkte" + (mins?"  ·  ≈ "+mins+" min geplant":"");
-  };
-  s.__refreshSum = refreshSum;
-  renderItems(list, s); refreshSum();
-  wrap.appendChild(list);
-
-  // Aktions-Reihe
-  const acts = document.createElement("div"); acts.className="act-row";
-  const bAdd = mkBtn("＋ Punkt", ()=>{
-    const last = s.items[s.items.length-1];
-    const it = {id:uid(),text:"",done:false,group:last?last.group||"":"",min:"",indent:last?last.indent||0:0};
-    s.items.push(it); touch(s); save(); renderItems(list,s); refreshSum();
-    focusItem(list, it.id);
-  });
-  const bLib = mkBtn("📚 aus Sammlung", ()=>openLibPick(s));
-  const bCat = mkBtn("＋ aus Katalog", ()=>openDrillPick(s));
-  const bIdea= mkBtn("💡 aus Ideen", ()=>openIdeaPick(s));
-  const bCarry=mkBtn("↧ Offene Punkte übernehmen", ()=>{
-    const n = carryOverInto(s);
-    if(n){ save(); renderItems(list,s); refreshSum(); toast(n+" Punkt(e) übernommen"); }
-    else toast("Keine offenen Punkte in früheren Einheiten");
-  });
-  acts.append(bAdd,bLib,bCat,bIdea,bCarry);
-  wrap.appendChild(acts);
-
-  // Notiz
-  wrap.appendChild(mkLabel("Notiz"));
-  const note = document.createElement("textarea");
-  note.className="note-in"; note.placeholder="Freie Notizen zur Planung…"; note.value=s.note||"";
-  note.oninput=()=>{ s.note=note.value; autosize(note); touch(s); saveSoft(); };
-  wrap.appendChild(note); requestAnimationFrame(()=>autosize(note));
-
-  // Reflexion
-  wrap.appendChild(mkLabel("Nachbesprechung – was war, was nächstes Mal?"));
-  const refl = document.createElement("textarea");
-  refl.className="refl-in"; refl.placeholder="Direkt nach dem Training ausfüllen…"; refl.value=s.reflection||"";
-  refl.oninput=()=>{ s.reflection=refl.value; autosize(refl); touch(s); saveSoft(); };
-  wrap.appendChild(refl); requestAnimationFrame(()=>autosize(refl));
-
-  // Sprachmemos
-  wrap.appendChild(mkLabel("Sprachmemos"));
-  const memos = document.createElement("div"); memos.className="memos";
-  renderMemos(memos, s);
-  wrap.appendChild(memos);
-  const rb = document.createElement("button");
-  rb.className="recbtn"; rb.textContent="🎤 Memo aufnehmen";
-  rb.onclick=()=>startRec(s.id);
-  wrap.appendChild(rb);
-
-  // Löschen
-  const del = document.createElement("button");
-  del.className="card-del"; del.textContent="Diese Einheit löschen";
-  del.onclick=async()=>{
-    if(!confirm("Einheit inkl. Memos löschen?")) return;
-    for(const m of s.memos){ try{await idbDel(m.id);}catch(e){} state.tomb.memo[m.id]=Date.now(); }
-    state.tomb.session[s.id]=Date.now();
-    state.sessions = state.sessions.filter(x=>x.id!==s.id);
-    openIds.delete(s.id); save(); render();
-  };
-  wrap.appendChild(del);
-  return wrap;
-}
-
-function mkBtn(t,fn){const b=document.createElement("button");b.textContent=t;b.onclick=fn;return b;}
-function mkLabel(t){const d=document.createElement("div");d.className="blk-label";d.textContent=t;return d;}
-let _softT; function saveSoft(){ clearTimeout(_softT); _softT=setTimeout(save,400); }
-function touch(s){ s.updatedAt=Date.now(); }
-
-function renderItems(container, s){
-  container.innerHTML="";
-  let lastGroup = null;
-  s.items.forEach((it,idx)=>{
-    if((it.group||"") !== (lastGroup||"") && it.group){
-      const g=document.createElement("div"); g.className="grp"; g.textContent=it.group;
-      g.title="Tippen zum Umbenennen der Gruppe";
-      g.onclick=()=>{ const nv=prompt("Gruppe umbenennen:", it.group); if(nv==null)return;
-        const old=it.group; s.items.forEach(x=>{ if((x.group||"")===old) x.group=nv; }); save(); renderItems(container,s); };
-      container.appendChild(g);
-    }
-    lastGroup = it.group||"";
-    const lvl = Math.max(0, Math.min(2, it.indent||0));
-    const row=document.createElement("div"); row.className="item"+(it.done?" done":"")+(lvl?" sub":"");
-    row.dataset.id = it.id;
-    row.style.marginLeft = (lvl*22)+"px";
-    const hasCourt = it.court && it.court.els && it.court.els.length;
-    row.innerHTML = `<button class="cb">✓</button>
-      <button class="it-in" title="Einrücken (Unterpunkt)">⇥</button>
-      <input class="it-text" value="${esc(it.text)}" placeholder="Übung / Punkt…">
-      <input class="it-min" type="number" inputmode="numeric" value="${it.min||""}" placeholder="min" aria-label="Minuten">
-      <button class="it-court${hasCourt?" has":""}" title="Zielzonen-Skizze">📐</button>
-      <button class="mv" data-d="-1">▲</button><button class="mv" data-d="1">▼</button>
-      <button class="x">✕</button>`;
-    const setIndent = (v)=>{ it.indent = Math.max(0, Math.min(2, v)); touch(s); save(); renderItems(container,s); focusItem(container,it.id); };
-    $(".cb",row).onclick=()=>{ it.done=!it.done; touch(s); save(); render(); };
-    $(".it-in",row).onclick=()=>setIndent(((it.indent||0)+1)>2 ? 0 : (it.indent||0)+1);
-    $(".it-court",row).onclick=()=>courtSheet(it, ()=>{ touch(s); save(); renderItems(container,s); });
-    $(".it-min",row).oninput=e=>{ it.min=parseInt(e.target.value)||""; touch(s); saveSoft(); s.__refreshSum&&s.__refreshSum(); };
-    const tx=$(".it-text",row);
-    tx.oninput=()=>{ it.text=tx.value; touch(s); saveSoft(); };
-    tx.onkeydown=(e)=>{
-      if(e.key==="Tab"){ e.preventDefault(); setIndent((it.indent||0) + (e.shiftKey?-1:1)); }
-      else if(e.key==="Enter"){ e.preventDefault();
-        const ni={id:uid(),text:"",done:false,group:it.group||"",indent:it.indent||0};
-        s.items.splice(idx+1,0,ni); touch(s); save(); renderItems(container,s); focusItem(container,ni.id);
-      } else if(e.key==="Backspace" && tx.value===""){ e.preventDefault();
-        if((it.indent||0)>0){ setIndent((it.indent||0)-1); return; }
-        s.items.splice(idx,1); touch(s); save(); renderItems(container,s);
-        const prev=s.items[idx-1]; if(prev) focusItem(container,prev.id);
-      }
-    };
-    $$(".mv",row).forEach(b=>b.onclick=()=>{
-      const d=+b.dataset.d, j=idx+d;
-      if(j<0||j>=s.items.length) return;
-      [s.items[idx],s.items[j]]=[s.items[j],s.items[idx]];
-      touch(s); save(); renderItems(container,s);
+  const ses=sessionsOf(g.id);
+  page.append(h("div",{class:"h2"},"Einheiten"));
+  if(!ses.length) page.append(h("p",{class:"hint"},"Noch keine Einheit. Starte oben mit „Neue Einheit“."));
+  else{
+    const gr=h("div",{class:"group"});
+    ses.forEach(s=>{
+      const first=s.items.find(i=>String(i.text||"").trim());
+      const prev=s.title||(first?first.text:"Noch leer");
+      const tot=s.items.filter(i=>String(i.text||"").trim()).length;
+      gr.append(h("button",{class:"row",onclick:()=>go("/e/"+s.id)},
+        h("span",{class:"grow"},h("div",{class:"name"},fmtMid(s.date)),h("div",{class:"sub"},prev)),
+        tot?h("span",{class:"meta"},doneCount(s)+"/"+tot):null,
+        h("span",{class:"ico chev",html:ico("chev",20)})));
     });
-    $(".x",row).onclick=()=>{ s.items.splice(idx,1); touch(s); save(); render(); };
-    container.appendChild(row);
-    if(hasCourt){
-      const th=document.createElement("div");
-      th.innerHTML = courtSVG(it.court,{id:"i"+it.id}).replace('class="court"','class="court court-thumb"');
-      th.firstChild.onclick=()=>courtSheet(it, ()=>{ touch(s); save(); renderItems(container,s); });
-      container.appendChild(th.firstChild);
-    }
-  });
+    page.append(gr);
+  }
+  root.__after=()=>{
+    $$(".note",nb).forEach(n=>n.__fit&&n.__fit());
+    if(notesFocus){ const idx=state.pins.filter(p=>(p.groupId||null)===g.id).findIndex(p=>p.id===notesFocus); const n=$$(".note",nb)[idx]; if(n) $("input",n).focus(); notesFocus=null; }
+  };
+  return root;
 }
-function focusItem(container,id){
-  requestAnimationFrame(()=>{
-    const el = container.querySelector('.item[data-id="'+id+'"] .it-text');
-    if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+function createEinheit(g){
+  const s={id:uid(),area:g.area||"tennis",groupId:g.id,date:nextPlanDate(g),title:"",status:"planned",place:"",durationMin:"",participants:"",tags:[],attend:{},items:[],note:"",reflection:"",memos:[],createdAt:Date.now(),updatedAt:Date.now()};
+  if(state.settings.carryOver) carryOverInto(s);
+  state.sessions.push(s); save(); pendingAddFocus=true; go("/e/"+s.id);
+}
+let pendingAddFocus=false;
+function stundeSheet(g){
+  const days=WEEKDAYS.map((d,i)=>`<button class="chip${g.weekday===i?" on":""}" data-d="${i}">${d}</button>`).join("");
+  openSheet(`<div class="sheet-title">Stunde</div>
+    <span class="flabel">Bereich</span>
+    <div class="seg" id="sgArea"><button data-a="tennis" class="${g.area!=="kondition"?"on":""}">Tennis</button><button data-a="kondition" class="${g.area==="kondition"?"on":""}">Kondition</button></div>
+    <span class="flabel">Wochentag</span><div class="chips" id="sgDays">${days}</div>
+    <span class="flabel">Uhrzeit</span><input id="sgTime" class="field" type="time" value="${esc(g.time||"")}">
+    <div class="group" style="margin-top:22px" id="sgAct"></div>`,()=>render());
+  const upd=()=>{ g.slotParsed=true; touch(g); save(); };
+  $$("#sgArea button",sheetPanel).forEach(b=>b.addEventListener("click",()=>{
+    g.area=b.dataset.a; $$("#sgArea button",sheetPanel).forEach(x=>x.classList.toggle("on",x===b)); upd();
+  }));
+  $$("#sgDays .chip",sheetPanel).forEach(b=>b.addEventListener("click",()=>{
+    const d=+b.dataset.d; g.weekday=(g.weekday===d)?undefined:d;
+    $$("#sgDays .chip",sheetPanel).forEach(x=>x.classList.toggle("on",+x.dataset.d===g.weekday)); upd();
+  }));
+  $("#sgTime",sheetPanel).addEventListener("change",e=>{ g.time=e.target.value||undefined; upd(); });
+  const box=$("#sgAct",sheetPanel);
+  const arch=h("button",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},g.archived?"Aus dem Archiv holen":"Archivieren"),h("div",{class:"sub"},g.archived?"Wieder in der Stundenliste anzeigen":"Ausblenden, z. B. nach der Saison")));
+  arch.addEventListener("click",()=>{ g.archived=g.archived?undefined:true; touch(g); save(); sheetOnClose=null; closeSheet(); go("/"); });
+  const del=h("button",{class:"row danger"},h("span",{class:"grow"},h("div",{class:"name"},"Stunde löschen"),h("div",{class:"sub"},"Mit allen Einheiten und Notizen")));
+  del.addEventListener("click",()=>{
+    const n=sessionsOf(g.id).length;
+    if(!confirm("„"+g.name+"“ mit "+n+" Einheit(en) und allen Notizen endgültig löschen?")) return;
+    deleteStunde(g); sheetOnClose=null; closeSheet(); go("/");
   });
+  box.append(arch,del);
+}
+function deleteStunde(g){
+  sessionsOf(g.id).forEach(s=>{ s.memos.forEach(m=>{ idbDel(m.id).catch(()=>{}); state.tomb.memo[m.id]=Date.now(); }); state.tomb.session[s.id]=Date.now(); });
+  state.sessions=state.sessions.filter(s=>s.groupId!==g.id);
+  state.pins.filter(p=>p.groupId===g.id).forEach(p=>{ state.tomb.pin[p.id]=Date.now(); });
+  state.pins=state.pins.filter(p=>p.groupId!==g.id);
+  state.tomb.group[g.id]=Date.now(); state.groups=state.groups.filter(x=>x.id!==g.id);
+  save();
 }
 
-/* ---------- Memos rendern ---------- */
-async function renderMemos(container, s){
-  container.innerHTML="";
-  if(!s.memos.length){
-    const e=document.createElement("div"); e.style.cssText="color:var(--faint);font-size:12.5px";
-    e.textContent="Noch keine Aufnahme.";
-    container.appendChild(e); return;
+/* ---------- Tastatur-Leiste ---------- */
+let kbHandler=null, barHideT=null;
+const kbbar=$("#kbbar");
+function placeBar(){ const vv=window.visualViewport; kbbar.style.transform=vv?("translateY("+(-(innerHeight-vv.height-vv.offsetTop))+"px)"):""; }
+if(window.visualViewport){ visualViewport.addEventListener("resize",placeBar); visualViewport.addEventListener("scroll",placeBar); }
+function showBar(){ clearTimeout(barHideT); kbbar.classList.remove("hidden"); placeBar(); }
+function hideBar(now){
+  clearTimeout(barHideT);
+  const doIt=()=>{ const a=document.activeElement; if(a&&a.closest&&a.closest(".checklist")) return; kbbar.classList.add("hidden"); };
+  if(now) kbbar.classList.add("hidden"); else barHideT=setTimeout(doIt,120);
+}
+$$("button",kbbar).forEach(b=>{
+  ["pointerdown","mousedown"].forEach(ev=>b.addEventListener(ev,e=>e.preventDefault()));
+  b.addEventListener("click",()=>{ if(kbHandler) kbHandler(b.dataset.a); });
+});
+
+/* ---------- Einheit ---------- */
+function einheitView(s){
+  const g=grp(s.groupId);
+  const root=h("div");
+  root.append(topbar({back:{label:g?g.name:"Stunden",href:g?"/s/"+g.id:"/"},right:[moreBtn(()=>einheitSheet(s))]}));
+  const page=h("main",{class:"page"}); root.append(page);
+
+  const dLbl=h("span",{},fmtLong(s.date));
+  const dInp=h("input",{type:"date",class:"date-hit",value:s.date,"aria-label":"Datum ändern"});
+  dInp.addEventListener("change",()=>{ if(!dInp.value) return; s.date=dInp.value; touch(s); save(); dLbl.textContent=fmtLong(s.date); });
+  page.append(h("h1",{class:"title date-title"},dLbl,h("span",{class:"ico dim",html:ico("down",20)}),dInp));
+  const ti=h("input",{class:"focus-in",placeholder:"Fokus (optional), z. B. Aufschlag und Return",autocomplete:"off",enterkeyhint:"done","aria-label":"Fokus der Einheit"}); ti.value=s.title||"";
+  ti.addEventListener("input",()=>{s.title=ti.value;touch(s);saveSoft();});
+  ti.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();ti.blur();} });
+  page.append(ti);
+
+  /* ---- Checkliste ---- */
+  const list=h("div",{class:"group checklist"}); page.append(list);
+  const rows=new Map();
+  let activeIt=null, addIndent=0;
+  const clampI=v=>Math.max(0,Math.min(2,v));
+  const lastIt=s.items[s.items.length-1]; addIndent=lastIt?clampI(lastIt.indent||0):0;
+  const newItem=(text,group,indent)=>({id:uid(),text,done:false,group:group||"",indent:clampI(indent||0),min:""});
+  const clean=t=>t.replace(/^\s*(?:[-*•–]|\d+[.)])\s+/,"").trim();
+
+  const addTa=h("textarea",{class:"it",rows:"1",placeholder:"Punkt hinzufügen","aria-label":"Punkt hinzufügen",enterkeyhint:"next",autocapitalize:"sentences"});
+  const addRow=h("div",{class:"item addrow"},h("span",{class:"cb ghost",html:ico("plus",20)}),addTa);
+  const applyAddIndent=()=>{ addRow.style.paddingLeft=(addIndent*24)+"px"; };
+  applyAddIndent();
+
+  function mkRow(it){
+    const cb=h("button",{class:"cb","aria-label":"Erledigt"});
+    const ta=h("textarea",{class:"it",rows:"1",placeholder:"Punkt","aria-label":"Punkt",enterkeyhint:"next",autocapitalize:"sentences"}); ta.value=it.text||"";
+    const row=h("div",{class:"item","data-id":it.id},cb,ta,it.min?h("span",{class:"min"},it.min+"′"):null);
+    const setCb=()=>{ cb.className="cb"+(it.done?" on":""); cb.setAttribute("aria-pressed",it.done?"true":"false"); cb.innerHTML='<span class="box">'+(it.done?ico("check",14,2.8):"")+'</span>'; row.classList.toggle("done",!!it.done); };
+    const applyIndent=()=>{ row.style.paddingLeft=(clampI(it.indent||0)*24)+"px"; };
+    setCb(); applyIndent();
+    cb.addEventListener("click",()=>{ it.done=!it.done; setCb(); touch(s); saveSoft(); });
+    ta.addEventListener("input",()=>{ it.text=ta.value; autosize(ta); touch(s); saveSoft(); });
+    ta.addEventListener("focus",()=>{ activeIt=it; showBar(); reveal(ta); });
+    ta.addEventListener("blur",()=>hideBar());
+    ta.addEventListener("keydown",e=>onKey(e,it,ta));
+    ta.addEventListener("paste",e=>onPaste(e,it,ta));
+    return {row,ta,applyIndent,thumb:null};
   }
-  for(const m of s.memos){
-    const el=document.createElement("div"); el.className="memo";
-    el.innerHTML=`
-      <div class="m-row">
-        <input class="m-label" value="${esc(m.label||"")}" placeholder="Beschriftung (optional)">
-        <span class="m-time">${new Date(m.createdAt).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})} · ${m.durMs?fmtDur(m.durMs):"–"}</span>
-        <button class="m-del">✕</button>
-      </div>
-      <audio controls preload="none"></audio>
-      <div class="m-tlabel">📝 Transkript
-        <button class="m-tr" title="Aufnahme per KI transkribieren">✨ transkribieren</button></div>
-      <textarea class="m-trans" placeholder="Automatisch per KI – oder von Hand Stichworte eintragen…">${esc(m.transcript||"")}</textarea>`;
-    $(".m-label",el).oninput=e=>{ m.label=e.target.value; m.mLabelAt=Date.now(); saveSoft(); };
-    const tr=$(".m-trans",el);
-    tr.oninput=()=>{ m.transcript=tr.value; m.mTransAt=Date.now(); autosize(tr); touch(s); saveSoft(); };
-    requestAnimationFrame(()=>autosize(tr));
-    $(".m-tr",el).onclick=async(ev)=>{
-      const btn=ev.currentTarget;
-      btn.disabled=true; btn.textContent="… transkribiert";
-      try{
-        const txt = await transcribeMemo(m);
-        m.transcript = (m.transcript && m.transcript.trim()) ? (m.transcript.trim()+"\n"+txt) : txt;
-        m.mTransAt = Date.now(); touch(s); save();
-        tr.value = m.transcript; autosize(tr);
-        btn.textContent="✨ transkribieren";
-      }catch(e){
-        toast("Transkription: "+(e.message||e));
-        btn.textContent="✨ nochmal versuchen";
+  function reveal(ta){
+    setTimeout(()=>{ const r=ta.getBoundingClientRect(); const vh=window.visualViewport?visualViewport.height:innerHeight; if(r.bottom>vh-70||r.top<64) ta.scrollIntoView({block:"center",behavior:"smooth"}); },280);
+  }
+  function addThumb(it,r){
+    if(!(it.court&&it.court.els&&it.court.els.length)) return;
+    const th=h("div",{class:"thumbwrap"}); th.innerHTML=courtSVG(it.court,{id:"c"+it.id}).replace('class="court"','class="court court-thumb"');
+    th.firstChild.addEventListener("click",()=>openCourt(it));
+    r.row.after(th); r.thumb=th;
+  }
+  function paint(focus){
+    list.replaceChildren(); rows.clear();
+    let lg=null;
+    s.items.forEach(it=>{
+      const g2=it.group||"";
+      if(g2!==(lg||"")) list.append(g2?h("div",{class:"subhead"},g2):h("div",{class:"gap"}));
+      lg=g2;
+      const r=mkRow(it); rows.set(it.id,r); list.append(r.row); addThumb(it,r);
+    });
+    list.append(addRow);
+    if(list.isConnected) $$("textarea",list).forEach(autosize);
+    if(focus==="add") addTa.focus();
+    else if(focus&&focus.id) focusItem(focus.id,focus.pos);
+  }
+  function focusItem(id,pos){
+    const r=rows.get(id); if(!r) return;
+    r.ta.focus(); const p=pos==="end"?r.ta.value.length:(pos||0); try{r.ta.setSelectionRange(p,p);}catch(e){}
+  }
+  function setIndent(it,v){
+    it.indent=clampI(v); const r=rows.get(it.id); if(r) r.applyIndent(); touch(s); saveSoft();
+  }
+  function removeItem(it,focus){
+    s.items=s.items.filter(x=>x!==it); touch(s); saveSoft(); paint(focus);
+  }
+  function moveItem(it,d){
+    const i=s.items.indexOf(it), j=i+d; if(j<0||j>=s.items.length) return;
+    const r=rows.get(it.id); const pos=r?r.ta.selectionStart:0;
+    [s.items[i],s.items[j]]=[s.items[j],s.items[i]]; touch(s); saveSoft(); paint({id:it.id,pos});
+  }
+  function openCourt(it){
+    courtSheet(it,()=>{touch(s);saveSoft();});
+    sheetOnClose=()=>paint({id:it.id,pos:"end"});
+  }
+  function onKey(e,it,ta){
+    if(e.isComposing||e.keyCode===229) return;
+    const idx=s.items.indexOf(it);
+    if(e.key==="Tab"){ e.preventDefault(); setIndent(it,(it.indent||0)+(e.shiftKey?-1:1)); return; }
+    if(e.key==="Enter"&&!e.shiftKey){
+      e.preventDefault();
+      const v=ta.value;
+      if(!v.trim()){ if((it.indent||0)>0) setIndent(it,(it.indent||0)-1); else removeItem(it,"add"); return; }
+      const pos=ta.selectionStart, end=ta.selectionEnd;
+      const before=v.slice(0,pos).replace(/\s+$/,""), after=v.slice(end).replace(/^\s+/,"");
+      it.text=before; ta.value=before; autosize(ta);
+      const ni=newItem(after,it.group,it.indent);
+      s.items.splice(idx+1,0,ni); touch(s); saveSoft();
+      const r=mkRow(ni); rows.set(ni.id,r);
+      const cur=rows.get(it.id); (cur.thumb||cur.row).after(r.row); autosize(r.ta);
+      focusItem(ni.id,0); return;
+    }
+    if(e.key==="Backspace"&&ta.selectionStart===0&&ta.selectionEnd===0){
+      if((it.indent||0)>0){ e.preventDefault(); setIndent(it,(it.indent||0)-1); return; }
+      const prev=s.items[idx-1];
+      if(!ta.value){ e.preventDefault(); removeItem(it,prev?{id:prev.id,pos:"end"}:"add"); return; }
+      if(prev&&!(prev.court&&prev.court.els&&prev.court.els.length)&&(prev.group||"")===(it.group||"")){
+        e.preventDefault(); const pl=(prev.text||"").length; prev.text=(prev.text||"")+ta.value; s.items=s.items.filter(x=>x!==it); touch(s); saveSoft(); paint({id:prev.id,pos:pl});
       }
-      btn.disabled=false;
-    };
-    $(".m-del",el).onclick=async()=>{
+      return;
+    }
+    if(e.key==="ArrowUp"&&ta.selectionStart===0&&!e.shiftKey){ const prev=s.items[idx-1]; if(prev){e.preventDefault();focusItem(prev.id,"end");} return; }
+    if(e.key==="ArrowDown"&&ta.selectionEnd===ta.value.length&&!e.shiftKey){ e.preventDefault(); const nx=s.items[idx+1]; if(nx) focusItem(nx.id,0); else addTa.focus(); }
+  }
+  function onPaste(e,it,ta){
+    const t=(e.clipboardData||window.clipboardData).getData("text");
+    if(!t||!/\n/.test(t.trim())) return;
+    e.preventDefault();
+    const lines=t.split(/\r?\n/).map(clean).filter(Boolean); if(!lines.length) return;
+    const v=ta.value, a=ta.selectionStart, b=ta.selectionEnd;
+    it.text=(v.slice(0,a)+lines[0]+v.slice(b)).trim(); ta.value=it.text; autosize(ta);
+    const idx=s.items.indexOf(it); let at=idx;
+    lines.slice(1).forEach(l=>{ s.items.splice(++at,0,newItem(l,it.group,it.indent)); });
+    touch(s); saveSoft(); paint({id:s.items[at].id,pos:"end"});
+  }
+  /* Hinzufügen-Zeile: tippen, Enter, weiter – Tastatur bleibt offen */
+  function commitAdd(){
+    const raw=addTa.value;
+    if(!raw.trim()){ addTa.value=""; autosize(addTa); return false; }
+    const lines=raw.split(/\r?\n/).map(clean).filter(Boolean);
+    const prev=s.items[s.items.length-1];
+    lines.forEach((t,i)=>{
+      if(i===0&&prev&&prev.group) addRow.before(h("div",{class:"gap"}));
+      const ni=newItem(t,"",addIndent); s.items.push(ni);
+      const r=mkRow(ni); rows.set(ni.id,r); addRow.before(r.row); autosize(r.ta);
+    });
+    addTa.value=""; autosize(addTa); touch(s); saveSoft(); return true;
+  }
+  addTa.addEventListener("input",()=>autosize(addTa));
+  addTa.addEventListener("focus",()=>{ activeIt=null; showBar(); reveal(addTa); });
+  addTa.addEventListener("blur",()=>{ commitAdd(); hideBar(); });
+  addTa.addEventListener("keydown",e=>{
+    if(e.isComposing||e.keyCode===229) return;
+    if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); commitAdd(); return; }
+    if(e.key==="Tab"){ e.preventDefault(); addIndent=clampI(addIndent+(e.shiftKey?-1:1)); applyAddIndent(); return; }
+    if(e.key==="Backspace"&&!addTa.value&&addTa.selectionStart===0){
+      if(addIndent>0){ e.preventDefault(); addIndent--; applyAddIndent(); return; }
+      const l=s.items[s.items.length-1]; if(l){ e.preventDefault(); focusItem(l.id,"end"); }
+      return;
+    }
+    if(e.key==="ArrowUp"&&addTa.selectionStart===0){ const l=s.items[s.items.length-1]; if(l){ e.preventDefault(); focusItem(l.id,"end"); } }
+  });
+  addTa.addEventListener("paste",e=>{
+    const t=(e.clipboardData||window.clipboardData).getData("text");
+    if(!t||!/\n/.test(t.trim())) return;
+    e.preventDefault(); addTa.value=t; commitAdd();
+  });
+  kbHandler=(a)=>{
+    if(a==="in"||a==="out"){
+      const d=a==="in"?1:-1;
+      if(activeIt) setIndent(activeIt,(activeIt.indent||0)+d); else { addIndent=clampI(addIndent+d); applyAddIndent(); }
+      return;
+    }
+    if(!activeIt) return;
+    if(a==="up"||a==="dn") moveItem(activeIt,a==="up"?-1:1);
+    else if(a==="court") openCourt(activeIt);
+    else if(a==="del"){ const i=s.items.indexOf(activeIt), prev=s.items[i-1]; const it=activeIt; activeIt=null; removeItem(it,prev?{id:prev.id,pos:"end"}:"add"); }
+  };
+  paint();
+
+  /* ---- Nachbesprechung ---- */
+  if((s.note||"").trim()){
+    page.append(h("div",{class:"h2"},"Notiz"));
+    const ng=h("div",{class:"group"}); const nt=h("textarea",{class:"area",placeholder:"Notiz …"}); nt.value=s.note;
+    nt.addEventListener("input",()=>{s.note=nt.value;autosize(nt);touch(s);saveSoft();}); ng.append(nt); page.append(ng);
+  }
+  page.append(h("div",{class:"h2"},"Nachbesprechung"));
+  const rg=h("div",{class:"group"}); const rt=h("textarea",{class:"area",placeholder:"Was lief gut, was machst du nächstes Mal anders?"}); rt.value=s.reflection||"";
+  rt.addEventListener("input",()=>{s.reflection=rt.value;autosize(rt);touch(s);saveSoft();}); rg.append(rt); page.append(rg);
+
+  /* ---- Sprachmemos ---- */
+  page.append(h("div",{class:"h2"},"Sprachmemos"));
+  if(s.memos.length){
+    const mg=h("div",{class:"group",style:"margin-bottom:10px"}); page.append(mg);
+    s.memos.forEach(m=>mg.append(memoEl(s,m)));
+  }
+  page.append(h("button",{class:"btn line",onclick:()=>startRec(s.id)},h("span",{class:"ico",html:ico("mic",20)}),"Sprachmemo aufnehmen"));
+
+  root.__after=()=>{
+    $$("textarea",root).forEach(autosize);
+    if(pendingAddFocus){ pendingAddFocus=false; addTa.focus(); }
+  };
+  return root;
+}
+function memoEl(s,m){
+  const el=h("div",{class:"memo"});
+  const head=h("div",{class:"memo-head"},
+    h("span",{},new Date(m.createdAt).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" · "+(m.durMs?fmtDur(m.durMs):"–")),
+    h("button",{class:"icon-btn","aria-label":"Memo löschen",html:ico("trash",19),onclick:async()=>{
       if(!confirm("Memo löschen?")) return;
       try{await idbDel(m.id);}catch(e){}
-      state.tomb.memo[m.id]=Date.now();
-      s.memos=s.memos.filter(x=>x.id!==m.id); touch(s); save(); renderMemos(container,s);
-    };
-    container.appendChild(el);
-    idbGet(m.id).then(blob=>{
-      if(blob){ $("audio",el).src=URL.createObjectURL(blob); }
-      else {
-        const a=$("audio",el); a.replaceWith(Object.assign(document.createElement("div"),
-          {className:"m-row",style:"color:var(--faint);font-size:12px",
-           textContent:"⤓ Aufnahme noch nicht auf diesem Gerät – Cloud-Sync starten"}));
-      }
-    });
-  }
-}
-
-/* ---------- Timeline ---------- */
-function renderTimeline(){
-  const l=document.createElement("div"); l.className="sec-label"; l.textContent="Verlauf";
-  board.appendChild(l);
-  const list = visibleSessions();
-  if(!list.length){ const e=document.createElement("div");e.className="empty";e.textContent="Noch nichts im Verlauf.";board.appendChild(e);return; }
-  let lastM=null;
-  list.forEach(s=>{
-    const m = new Date(s.date+"T00:00:00").toLocaleDateString("de-DE",{month:"long",year:"numeric"});
-    if(m!==lastM){ const h=document.createElement("div");h.className="tl-month";h.textContent=m;board.appendChild(h);lastM=m; }
-    const done=s.items.filter(i=>i.done).length;
-    const r=document.createElement("div"); r.className="tl-row";
-    r.innerHTML=`<span class="tl-d">${fmtShort(s.date)}</span>
-      <span class="tl-dot ${s.area}"></span>
-      <span class="tl-t">${esc(s.title||(s.area==="tennis"?"Tennis":"Kondition"))}</span>
-      <span class="tl-pg">${s.items.length?done+"/"+s.items.length:""}</span>`;
-    r.onclick=()=>{ state.settings.view="board"; openIds.add(s.id); save(); render();
-      requestAnimationFrame(()=>{ const c=[...board.querySelectorAll(".card")].find(x=>x.dataset.a);
-        const target=[...board.querySelectorAll(".card")].find(x=>x.querySelector(".card-date")?.textContent===fmtDate(s.date));
-        target?.scrollIntoView({behavior:"smooth",block:"center"}); });
-    };
-    board.appendChild(r);
-  });
-}
-
-/* ---------- Wochenplan ---------- */
-function nextDateForWeekday(wd){          // wd: 0=Mo … 6=So
-  const now = new Date();
-  const jsToday = now.getDay();           // 0=So … 6=Sa
-  const jsTarget = (wd+1)%7;
-  const delta = (jsTarget - jsToday + 7) % 7;
-  const d = new Date(now); d.setHours(0,0,0,0); d.setDate(now.getDate()+delta);
-  d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
-  return { iso: d.toISOString().slice(0,10), delta };
-}
-function renderWoche(){
-  const head=document.createElement("div"); head.className="sec-label"; head.textContent="Wochenplan"; board.appendChild(head);
-  const withDay = state.groups.filter(g=>g.weekday!=null)
-    .map(g=>({g, ...nextDateForWeekday(g.weekday)}))
-    .sort((a,b)=> a.delta-b.delta || (a.g.time||"").localeCompare(b.g.time||""));
-  const without = state.groups.filter(g=>g.weekday==null)
-    .slice().sort((x,y)=>(x.order??0)-(y.order??0));
-
-  if(!withDay.length && !without.length){
-    const e=document.createElement("div"); e.className="empty";
-    e.innerHTML="Noch keine Stunden mit festem Termin.<br>In <b>Stunden verwalten → Termin &amp; Kader</b> Wochentag + Uhrzeit setzen.";
-    board.appendChild(e);
-  }
-
-  const relLabel = d => d===0?"heute":"morgen";
-  const mkRow = (g, iso, delta)=>{
-    const planned = state.sessions.find(s=>s.groupId===g.id && s.date===iso);
-    const last = state.sessions.filter(s=>s.groupId===g.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""))[0];
-    const open = last ? last.items.filter(i=>!i.done && i.text.trim()).length : 0;
-    const row=document.createElement("div"); row.className="wk-row";
-    row.innerHTML=`
-      <div class="wk-when">
-        <b class="${delta!=null&&delta<=1?"wk-due":""}">${delta==null?"—":(delta<=1?relLabel(delta):WEEKDAYS[g.weekday])}</b>
-        <span>${g.time||""}</span>
-      </div>
-      <div class="wk-body">
-        <div class="wk-name">${esc(g.name)}</div>
-        <div class="wk-meta">${delta==null?"kein fester Termin":fmtDate(iso)}${open?` · ${open} offene Punkte`:""}${planned?" · ✓ geplant":""}</div>
-      </div>
-      <div class="wk-act"></div>`;
-    const act=$(".wk-act",row);
-    const bPlan=document.createElement("button");
-    if(planned){ bPlan.textContent="öffnen"; bPlan.className="prim"; bPlan.onclick=()=>{ state.settings.view="board"; state.settings.group=g.id; openIds.clear(); openIds.add(planned.id); save(); render(); }; }
-    else { bPlan.textContent=delta==null?"＋ Einheit":"＋ für "+fmtShort(iso); bPlan.className="prim";
-      bPlan.onclick=()=>{
-        const src = (g.template&&g.template.length)?"group":"area";
-        newSession(g.area, src, g.id);
-        const ns=state.sessions[state.sessions.length-1];
-        if(delta!=null){ ns.date=iso; touch(ns); }
-        state.settings.view="board"; save(); render();
-      };
+      state.tomb.memo[m.id]=Date.now(); s.memos=s.memos.filter(x=>x.id!==m.id); touch(s); save(); render();
+    }}));
+  const au=h("audio",{controls:true,preload:"none"});
+  el.append(head,au);
+  idbGet(m.id).then(blob=>{
+    if(blob) au.src=URL.createObjectURL(blob);
+    else au.replaceWith(h("div",{class:"hint",style:"margin:8px 0"},"Aufnahme ist noch nicht auf diesem Gerät – Cloud-Sync starten."));
+  }).catch(()=>{});
+  const holder=h("div"); el.append(holder);
+  const paintT=()=>{
+    holder.replaceChildren();
+    if((m.transcript||"").trim()){
+      const ta=h("textarea",{rows:"1","aria-label":"Transkript"}); ta.value=m.transcript;
+      ta.addEventListener("input",()=>{m.transcript=ta.value;m.mTransAt=Date.now();autosize(ta);touch(s);saveSoft();});
+      holder.append(ta); setTimeout(()=>autosize(ta),0);
     }
-    act.appendChild(bPlan);
-    if(last){ const bLast=document.createElement("button"); bLast.textContent="letzte";
-      bLast.onclick=()=>{ state.settings.view="board"; state.settings.group=g.id; openIds.clear(); openIds.add(last.id); save(); render(); };
-      act.appendChild(bLast); }
-    return row;
-  };
-
-  withDay.forEach(x=> board.appendChild(mkRow(x.g, x.iso, x.delta)));
-  if(without.length){
-    const h=document.createElement("div"); h.className="sec-label"; h.textContent="Ohne festen Termin"; board.appendChild(h);
-    without.forEach(g=> board.appendChild(mkRow(g, null, null)));
-  }
-  const mg=document.createElement("button"); mg.className="addpin"; mg.textContent="Stunden / Termine verwalten";
-  mg.style.marginTop="14px"; mg.onclick=groupManageSheet; board.appendChild(mg);
-}
-
-/* ---------- Neue Einheit ---------- */
-function newSession(area, tplSource, groupId){
-  let gid = groupId;
-  if(gid===undefined){
-    const g = state.groups.find(x=>x.id===state.settings.group);
-    gid = (g && g.area===area) ? g.id : null;
-  }
-  const s = {
-    id:uid(), area, groupId:gid||null, date:todayISO(), title:"", status:"planned",
-    place:"", durationMin:"", participants:"", tags:[], attend:{},
-    items:[], note:"", reflection:"", memos:[],
-    createdAt:Date.now(), updatedAt:Date.now()
-  };
-  // Vorlage bestimmen: "group" = Vorlage dieser Stunde, "area" = Bereichsvorlage
-  let tpl = null;
-  if(tplSource==="group" && gid){
-    const g = state.groups.find(x=>x.id===gid);
-    if(g && g.template && g.template.length) tpl = g.template;
-  }
-  if(!tpl && (tplSource==="area" || tplSource==="group" || tplSource===true)) tpl = state.templates[area]||[];
-  if(tpl){
-    tpl.forEach(g=>{
-      (g.items||[]).forEach(t=> s.items.push({id:uid(),text:t,done:false,group:g.group,min:""}));
+    const btn=h("button",{class:"linkbtn"},(m.transcript||"").trim()?"Neu transkribieren":"Transkribieren");
+    btn.addEventListener("click",async()=>{
+      btn.disabled=true; btn.textContent="Wird transkribiert …";
+      try{
+        const txt=await transcribeMemo(m);
+        m.transcript=txt; m.mTransAt=Date.now(); touch(s); save(); paintT();
+      }catch(e){ toast("Transkription: "+(e.message||e)); btn.disabled=false; btn.textContent="Nochmal versuchen"; }
     });
-  }
-  if(state.settings.carryOver) carryOverInto(s, true);
-  state.sessions.push(s);
-  openIds.clear(); openIds.add(s.id);
-  save(); render();
-  requestAnimationFrame(()=>{
-    const target=[...board.querySelectorAll(".card")][0];
-    target?.scrollIntoView({behavior:"smooth",block:"start"});
+    holder.append(btn);
+  };
+  paintT();
+  return el;
+}
+function einheitSheet(s){
+  const g=grp(s.groupId);
+  menuSheet(fmtMid(s.date),[
+    s.area!=="kondition"?{label:"Aus Sammlung einfügen",sub:"Übungen oder ganze Bausteine",fn:()=>libPick(s)}:null,
+    {label:"Offene Punkte holen",sub:"Aus der letzten Einheit dieser Stunde",fn:()=>{
+      const n=carryOverInto(s); sheetOnClose=null; closeSheet();
+      if(n){ save(); render(); toast(n+" Punkt(e) übernommen"); } else toast("Nichts Offenes in früheren Einheiten");
+    }},
+    g?{label:"Anwesenheit",sub:(g.roster||[]).length?Object.keys(s.attend||{}).length+" von "+g.roster.length+" da":"Kader anlegen und abhaken",fn:()=>attendSheet(s,g)}:null,
+    {label:"Einheit löschen",danger:true,fn:()=>{
+      if(!confirm("Einheit vom "+fmtMid(s.date)+" mit allen Memos löschen?")) return;
+      s.memos.forEach(m=>{ idbDel(m.id).catch(()=>{}); state.tomb.memo[m.id]=Date.now(); });
+      state.tomb.session[s.id]=Date.now(); state.sessions=state.sessions.filter(x=>x.id!==s.id); save();
+      sheetOnClose=null; closeSheet(); go(g?"/s/"+g.id:"/");
+    }}
+  ]);
+}
+function attendSheet(s,g){
+  g.roster=g.roster||[];
+  openSheet(`<div class="sheet-title">Anwesenheit</div><div class="group" id="atl"></div>
+    <span class="flabel">Person zum Kader hinzufügen</span>
+    <input id="atNew" class="field" placeholder="Name, dann Enter" autocomplete="off" enterkeyhint="done">`,()=>render());
+  const box=$("#atl",sheetPanel);
+  const draw=()=>{
+    box.replaceChildren();
+    if(!g.roster.length) box.append(h("div",{class:"srow dim"},"Noch niemand im Kader."));
+    g.roster.forEach((p,i)=>{
+      const on=!!(s.attend&&s.attend[p.id]);
+      const b=h("button",{class:"srow",style:"width:100%;text-align:left"},
+        h("span",{class:"cb"+(on?" on":"")+" ",html:'<span class="box">'+(on?ico("check",14,2.8):"")+'</span>',style:"width:auto;height:auto"}),
+        h("span",{class:"grow t"},p.name),
+        h("span",{class:"icon-btn","aria-label":"Aus Kader entfernen",html:ico("trash",18),onclick:(e)=>{ e.stopPropagation(); if(!confirm("„"+p.name+"“ aus dem Kader entfernen?")) return; g.roster.splice(i,1); touch(g); save(); draw(); }}));
+      b.addEventListener("click",()=>{ s.attend=s.attend||{}; if(s.attend[p.id]) delete s.attend[p.id]; else s.attend[p.id]=1; touch(s); save(); draw(); });
+      box.append(b);
+    });
+  };
+  draw();
+  $("#atNew",sheetPanel).addEventListener("keydown",e=>{
+    if(e.key!=="Enter"||e.isComposing) return; e.preventDefault();
+    const n=e.target.value.trim(); if(!n) return;
+    const pid=uid(); g.roster.push({id:pid,name:n}); touch(g); s.attend=s.attend||{}; s.attend[pid]=1; touch(s); save(); e.target.value=""; draw();
   });
 }
-function carryOverInto(s, silent){
-  const cand = state.sessions.filter(x=>x.area===s.area && x.id!==s.id && x.date<=s.date);
-  const sameGroup = s.groupId ? cand.filter(x=>x.groupId===s.groupId) : [];
-  const pool = sameGroup.length ? sameGroup : cand;
-  const prev = pool
-    .sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.createdAt||0)-(a.createdAt||0))[0];
-  if(!prev) return 0;
-  const open = prev.items.filter(i=>!i.done && i.text.trim());
-  if(!open.length) return 0;
-  const g = "Offen aus "+fmtShort(prev.date);
-  open.forEach(i=> s.items.push({id:uid(),text:i.text,done:false,group:g,indent:i.indent||0}));
-  touch(s);
-  return open.length;
+
+/* ============================================================
+   Übungssammlung lesen (read-only) und einfügen
+   ============================================================ */
+let LIB = null;
+try{ const c=JSON.parse(localStorage.getItem("tb_lib_cache")||"null"); if(c&&c.data) LIB=c; }catch(e){}
+async function libLoad(force){
+  if(!force && LIB && Date.now()-LIB.at < 6e5) return LIB.data;
+  try{
+    const f = await ghGetAt(CFG.libUser(), CFG.libRepo(), CFG.libBranch(), CFG.libFile());
+    if(!f || (!f.content && !f.download_url)) throw new Error("Sammlung nicht gefunden");
+    let txt;
+    if(f.content) txt = b64dec(f.content);
+    else txt = await fetch(f.download_url).then(r=>r.text());
+    const parsed = JSON.parse(txt);
+    const data = parsed.state || parsed;
+    data.exercises ||= []; data.blueprints ||= [];
+    LIB = {at:Date.now(), data};
+    try{ localStorage.setItem("tb_lib_cache", JSON.stringify(LIB)); }catch(e){}
+    return data;
+  }catch(e){
+    if(LIB && LIB.data) return LIB.data;   // Fallback: alter Cache
+    throw e;
+  }
+}
+async function refreshLib(){
+  try{ const d=await libLoad(true); toast("Sammlung geladen: "+(d.exercises.length)+" Übungen, "+(d.blueprints.length)+" Bausteine"); }
+  catch(e){ toast("Sammlung: "+(e.message||e)); }
 }
 
-/* ---------- KI-Transkription (Groq / OpenAI Whisper) ---------- */
+function libPick(s){
+  if(s.area==="kondition"){ toast("Die Übungssammlung ist reines Tennis"); return; }
+  if(!LIB&&!CFG.tok()){ toast("Erst Cloud-Sync mit Token einrichten"); return; }
+  const TYPES={aufwaermen:"Aufwärmen",korb:"Korbübung",uebung:"Übung",spielform:"Spielform"};
+  let v="exercises", typ="alle", q="";
+  openSheet(`<div class="sheet-title">Aus Sammlung</div>
+    <div class="seg"><button data-v="exercises" class="on">Übungen</button><button data-v="blueprints">Stunden-Bausteine</button></div>
+    <input id="lq" class="field" placeholder="Suchen" style="margin-top:10px" autocomplete="off">
+    <div class="chips" id="lt" style="margin:10px 0"></div>
+    <div class="group" id="ll"></div>
+    <button class="linkbtn" id="lr">Sammlung aktualisieren</button>`,()=>render());
+  $$(".seg button",sheetPanel).forEach(b=>b.addEventListener("click",()=>{ v=b.dataset.v; typ="alle"; $$(".seg button",sheetPanel).forEach(x=>x.classList.toggle("on",x===b)); draw(); }));
+  $("#lq",sheetPanel).addEventListener("input",e=>{q=e.target.value.toLowerCase();draw();});
+  $("#lr",sheetPanel).addEventListener("click",async()=>{ await refreshLib(); draw(); });
+  function addEx(x,btn){
+    s.items.push({id:uid(),text:x.name+(x.desc?" – "+x.desc:""),done:false,group:TYPES[x.type]||"Aus Sammlung",indent:0,min:x.durationMin||"",court:(x.court&&x.court.els&&x.court.els.length)?x.court:undefined});
+    touch(s); save(); btn.textContent="Hinzugefügt"; btn.disabled=true; toast("„"+x.name+"“ eingefügt");
+  }
+  function addBp(b,btn){
+    (b.items||[]).forEach(i=>s.items.push({id:uid(),text:i.text,done:false,group:i.group||b.name,indent:0,min:i.durationMin||""}));
+    if(!s.title) s.title=b.name; touch(s); save(); btn.textContent="Hinzugefügt"; btn.disabled=true; toast((b.items||[]).length+" Punkte angehängt");
+  }
+  async function draw(){
+    const host=$("#ll",sheetPanel); host.replaceChildren(h("div",{class:"srow dim"},"lädt …"));
+    let data; try{ data=await libLoad(false); }catch(e){ host.replaceChildren(h("div",{class:"srow dim"},"Sammlung nicht erreichbar: "+(e.message||e))); return; }
+    const arr=(v==="blueprints"?data.blueprints:data.exercises)||[];
+    const ch=$("#lt",sheetPanel); ch.replaceChildren();
+    [["alle","Alle"],...Object.entries(TYPES)].forEach(([k,l])=>{ const c=h("button",{class:"chip"+(k===typ?" on":"")},l); c.addEventListener("click",()=>{typ=k;draw();}); ch.append(c); });
+    const items=arr.filter(x=>{
+      if(typ!=="alle"&&x.type!==typ) return false;
+      if(q){ const hay=[x.name,x.desc,x.note,(x.tags||[]).join(" "),(x.items||[]).map(i=>i.text).join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+      return true;
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+    host.replaceChildren();
+    if(!items.length){ host.append(h("div",{class:"srow dim"},"Nichts gefunden.")); return; }
+    items.forEach(x=>{
+      const btn=h("button",{class:"linkbtn"},"Hinzufügen");
+      btn.addEventListener("click",()=>v==="blueprints"?addBp(x,btn):addEx(x,btn));
+      const sub=v==="blueprints"?((x.items||[]).length+" Schritte"+(x.durationMin?" · "+x.durationMin+"′":"")):[TYPES[x.type],x.durationMin?x.durationMin+"′":""].filter(Boolean).join(" · ");
+      host.append(h("div",{class:"srow"},h("span",{class:"grow"},h("div",{class:"t"},x.name),h("div",{class:"s"},sub)),btn));
+    });
+  }
+  draw();
+}
+
 const STT = {
   prov: ()=>localStorage.getItem("tb_stt_prov")||"groq",
   key:  ()=>localStorage.getItem("tb_stt_key")||"",
@@ -1198,514 +1132,105 @@ async function transcribeMemo(m){
   if(!txt) throw new Error("leeres Ergebnis");
   return txt;
 }
+
 function sttSheet(){
-  const p = STT.prov();
-  openSheet(`<h2>Transkription (KI)</h2>
-    <div class="sub">Wandelt deine Sprachmemos automatisch in Text um. Läuft über einen Cloud-Dienst – dein Key liegt nur in diesem Browser.</div>
-    <div class="mini-form">
-      <label class="tiny">Dienst</label>
-      <select id="stProv">
-        <option value="groq"${p==="groq"?" selected":""}>Groq · Whisper large v3 (empfohlen, kostenlos)</option>
-        <option value="openai"${p==="openai"?" selected":""}>OpenAI · Whisper</option>
-      </select>
-      <label class="tiny">API-Key</label>
-      <input id="stKey" type="password" autocomplete="off" placeholder="gsk_… bzw. sk-…" value="${esc(STT.key())}">
-    </div>
-    <div class="toggle-row"><input type="checkbox" id="stAuto" ${STT.auto()?"checked":""}>
-      <label for="stAuto">Nach jeder Aufnahme automatisch transkribieren</label></div>
-    <div class="sheet-grp">
-      <button class="sheet-btn" id="stSave" style="justify-content:center;color:var(--accent);border-color:var(--accent)">Speichern</button>
-    </div>
-    <div class="tips">
-      <b>Groq-Key holen (2 Min, gratis)</b>
-      <ul>
-        <li><code>console.groq.com</code> → anmelden → <b>API Keys</b> → Create.</li>
-        <li>Key oben einfügen, speichern. Fertig – Groq-Whisper ist sehr gut bei Deutsch, auch mit Hallenlärm.</li>
-      </ul>
-      <div style="color:var(--faint)">OpenAI: Key von <code>platform.openai.com</code>. Je nach Browser/Adblocker kann OpenAI direkte Aufrufe blockieren – dann nimm Groq.</div>
-    </div>
-    <button class="sheet-close">Schließen</button>`);
-  $("#stSave",sheetPanel).onclick=()=>{
-    localStorage.setItem("tb_stt_prov", $("#stProv",sheetPanel).value);
-    localStorage.setItem("tb_stt_key", $("#stKey",sheetPanel).value.trim());
-    localStorage.setItem("tb_stt_auto", $("#stAuto",sheetPanel).checked?"1":"0");
+  const p=STT.prov();
+  openSheet(`<div class="sheet-title">Transkription</div>
+    <div class="sheet-note">Wandelt Sprachmemos per KI in Text um. Der Key bleibt nur in diesem Browser.</div>
+    <span class="flabel">Dienst</span>
+    <div class="seg" id="stProv"><button data-p="groq" class="${p==="groq"?"on":""}">Groq (gratis)</button><button data-p="openai" class="${p==="openai"?"on":""}">OpenAI</button></div>
+    <span class="flabel">API-Key</span><input id="stKey" class="field" type="password" autocomplete="off" placeholder="gsk_… bzw. sk-…" value="${esc(STT.key())}">
+    <label class="switchrow"><span>Nach jeder Aufnahme automatisch</span><input type="checkbox" id="stAuto" ${STT.auto()?"checked":""}></label>
+    <div class="sheet-grp"><button class="sheet-btn primary" id="stSave">Speichern</button></div>
+    <div class="tips"><b>Groq-Key in 2 Minuten:</b> <code>console.groq.com</code> → anmelden → API Keys → Create. Whisper large v3 versteht Deutsch auch mit Hallenlärm.</div>`);
+  let prov=p;
+  $$("#stProv button",sheetPanel).forEach(b=>b.addEventListener("click",()=>{ prov=b.dataset.p; $$("#stProv button",sheetPanel).forEach(x=>x.classList.toggle("on",x===b)); }));
+  $("#stSave",sheetPanel).addEventListener("click",()=>{
+    localStorage.setItem("tb_stt_prov",prov);
+    localStorage.setItem("tb_stt_key",$("#stKey",sheetPanel).value.trim());
+    localStorage.setItem("tb_stt_auto",$("#stAuto",sheetPanel).checked?"1":"0");
     toast("Gespeichert"); closeSheet();
-  };
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
+  });
 }
 
 /* ---------- Aufnahme ---------- */
-let rec = {mr:null,chunks:[],stream:null,t0:0,timer:null,targetId:null,cancelled:false};
-async function startRec(sessionId){
-  if(rec.mr && rec.mr.state==="recording") return;
-  let targetId = sessionId;
-  if(!targetId){
-    // Compose-Mic: neueste geplante Einheit im aktuellen Bereich, sonst neue anlegen
-    const a = state.settings.area==="alle" ? "tennis" : state.settings.area;
-    let t = state.sessions.filter(s=>s.area===a).sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0];
-    if(!t){ newSession(a,false); t = state.sessions[state.sessions.length-1]; }
-    targetId = t.id; openIds.add(targetId);
-  }
-  try{
-    rec.stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  }catch(e){ toast("Kein Mikrofon­zugriff möglich"); return; }
-  const mime = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/aac"]
-    .find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || "";
-  rec.mr = mime ? new MediaRecorder(rec.stream,{mimeType:mime}) : new MediaRecorder(rec.stream);
-  rec.chunks=[]; rec.cancelled=false; rec.targetId=targetId; rec.t0=Date.now();
-  rec.mr.ondataavailable = e=>{ if(e.data.size) rec.chunks.push(e.data); };
-  rec.mr.onstop = async ()=>{
+let rec={mr:null,chunks:[],stream:null,t0:0,timer:null,targetId:null,cancelled:false};
+async function startRec(sid){
+  if(rec.mr&&rec.mr.state==="recording") return;
+  try{ rec.stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ toast("Kein Mikrofonzugriff möglich"); return; }
+  const mime=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/aac"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||"";
+  rec.mr=mime?new MediaRecorder(rec.stream,{mimeType:mime}):new MediaRecorder(rec.stream);
+  rec.chunks=[]; rec.cancelled=false; rec.targetId=sid; rec.t0=Date.now();
+  rec.mr.ondataavailable=e=>{ if(e.data.size) rec.chunks.push(e.data); };
+  rec.mr.onstop=async()=>{
     rec.stream.getTracks().forEach(t=>t.stop());
     $("#recBar").classList.add("hidden"); clearInterval(rec.timer);
     if(rec.cancelled) return;
-    const blob = new Blob(rec.chunks,{type: rec.mr.mimeType||mime||"audio/webm"});
-    const id = uid();
-    try{ await idbPut(id, blob); }catch(e){ toast("Audio konnte nicht gespeichert werden"); return; }
-    const s = state.sessions.find(x=>x.id===rec.targetId);
-    if(!s) return;
-    const memo = {id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0};
-    s.memos.push(memo);
-    touch(s); save(); render();
-    toast("Memo gespeichert · "+fmtDate(s.date));
-    if(STT.auto() && STT.key()){
-      transcribeMemo(memo).then(txt=>{
-        memo.transcript=txt; memo.mTransAt=Date.now(); touch(s); save();
-        if(openIds.has(s.id)) render();
-        toast("Transkript fertig");
-      }).catch(e=>toast("Transkription: "+(e.message||e)));
+    const blob=new Blob(rec.chunks,{type:rec.mr.mimeType||mime||"audio/webm"});
+    const id=uid();
+    try{ await idbPut(id,blob); }catch(e){ toast("Audio konnte nicht gespeichert werden"); return; }
+    const s=sess(rec.targetId); if(!s) return;
+    const memo={id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0};
+    s.memos.push(memo); touch(s); save(); render(); toast("Memo gespeichert");
+    if(STT.auto()&&STT.key()){
+      transcribeMemo(memo).then(txt=>{ memo.transcript=txt; memo.mTransAt=Date.now(); touch(s); save(); if(!isEditing()) render(); toast("Transkript fertig"); })
+        .catch(e=>toast("Transkription: "+(e.message||e)));
     }
   };
   rec.mr.start();
-  $("#recBar").classList.remove("hidden");
-  $("#recTime").textContent="0:00";
-  rec.timer = setInterval(()=>{ $("#recTime").textContent = fmtDur(Date.now()-rec.t0); }, 500);
+  $("#recBar").classList.remove("hidden"); $("#recTime").textContent="0:00";
+  rec.timer=setInterval(()=>{ $("#recTime").textContent=fmtDur(Date.now()-rec.t0); },500);
 }
-$("#recStop").onclick = ()=>{ if(rec.mr && rec.mr.state==="recording"){ rec.cancelled=false; rec.mr.stop(); } };
-$("#recCancel").onclick = ()=>{ if(rec.mr && rec.mr.state==="recording"){ rec.cancelled=true; rec.mr.stop(); toast("Aufnahme verworfen"); } };
+$("#recStop").addEventListener("click",()=>{ if(rec.mr&&rec.mr.state==="recording"){ rec.cancelled=false; rec.mr.stop(); } });
+$("#recCancel").addEventListener("click",()=>{ if(rec.mr&&rec.mr.state==="recording"){ rec.cancelled=true; rec.mr.stop(); toast("Aufnahme verworfen"); } });
 
-/* ---------- Sheet ---------- */
-const sheet=$("#sheet"), sheetPanel=$("#sheetPanel");
-$(".sheet-bg",sheet).onclick=closeSheet;
-function openSheet(html){ sheetPanel.innerHTML=html; sheet.classList.remove("hidden"); }
-function closeSheet(){ sheet.classList.add("hidden"); sheetPanel.innerHTML=""; }
-
-function menuSheet(){
-  const v = state.settings.view;
-  openSheet(`
-    <h2>Menü</h2>
-    <div class="sub">Trainingsbuch · ${CFG.on()?"Cloud-Sync aktiv":"Daten liegen lokal auf diesem Gerät"}</div>
-    <div class="viewseg" id="vseg">
-      <button data-v="board" class="${v==="board"?"on":""}">🗂️ Board</button>
-      <button data-v="woche" class="${v==="woche"?"on":""}">🗓️ Woche</button>
-      <button data-v="timeline" class="${v==="timeline"?"on":""}">📋 Verlauf</button>
-    </div>
+/* ---------- Cloud-Dialog ---------- */
+function cloudSheet(){
+  const last=+localStorage.getItem("tb_cloud_last")||0;
+  openSheet(`<div class="sheet-title">Cloud-Sync</div>
+    <div class="sheet-note">Gleicht Handy und Mac über dein GitHub-Repo ab. ${CFG.on()?"Aktiv":"Aus"}${last?" · zuletzt "+new Date(last).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</div>
+    <span class="flabel">GitHub-Token (Contents: Read and write)</span><input id="cfTok" class="field" type="password" autocomplete="off" placeholder="github_pat_…" value="${esc(CFG.tok())}">
+    <span class="flabel">Benutzer</span><input id="cfUser" class="field" autocomplete="off" autocapitalize="none" value="${esc(CFG.user())}">
+    <span class="flabel">Repository</span><input id="cfRepo" class="field" autocomplete="off" autocapitalize="none" value="${esc(CFG.repo())}">
+    <span class="flabel">Branch</span><input id="cfBranch" class="field" autocomplete="off" autocapitalize="none" value="${esc(CFG.branch())}">
+    <span class="flabel">Übungssammlung: Repository</span><input id="cfLibRepo" class="field" autocomplete="off" autocapitalize="none" value="${esc(CFG.libRepo())}">
+    <span class="flabel">Übungssammlung: Datei</span><input id="cfLibFile" class="field" autocomplete="off" autocapitalize="none" value="${esc(CFG.libFile())}">
+    <label class="switchrow"><span>Sprachmemos mitsynchronisieren</span><input type="checkbox" id="cfAudio" ${CFG.audio()?"checked":""}></label>
+    <label class="switchrow"><span>Automatisch abgleichen</span><input type="checkbox" id="cfAuto" ${CFG.auto()?"checked":""}></label>
     <div class="sheet-grp">
-      <button class="sheet-btn" data-x="theme"><span class="em">${state.settings.theme==="dark"?"☀️":"🌙"}</span>${state.settings.theme==="dark"?"Helles Design":"Dunkles Design"}</button>
-      <button class="sheet-btn" data-x="groups"><span class="em">🗓️</span>Stunden verwalten<small>Deine Trainings-Slots benennen &amp; ordnen</small></button>
-      <button class="sheet-btn" data-x="drills"><span class="em">🎯</span>Übungskatalog (lokal)<small>Eigene Übungen für „＋ aus Katalog“</small></button>
-      <button class="sheet-btn" data-x="lib"><span class="em">📚</span>Übungssammlung aktualisieren<small>Geteilte Sammlung neu vom Repo laden</small></button>
-      <button class="sheet-btn" data-x="tpl"><span class="em">🧩</span>Vorlagen bearbeiten<small>Standard-Aufbau für neue Einheiten (global)</small></button>
+      <button class="sheet-btn primary" id="cfSave">Speichern und einschalten</button>
+      <button class="sheet-btn" id="cfSync">Jetzt abgleichen</button>
+      <button class="sheet-btn danger" id="cfOff">Sync ausschalten</button>
     </div>
-    <div class="sheet-grp">
-      <button class="sheet-btn" data-x="stt"><span class="em">🎙</span>Transkription (KI)<small>${STT.key()?"aktiv – "+(STT.prov()==="groq"?"Groq":"OpenAI"):"Sprachmemos automatisch in Text"}</small></button>
-      <button class="sheet-btn" data-x="cloud"><span class="em">☁️</span>Cloud-Sync (Handy ↔ Mac)<small>${CFG.on()?"aktiv – tippen zum Einstellen":"über GitHub einrichten"}</small></button>
-      <button class="sheet-btn" data-x="exp"><span class="em">💾</span>Backup als Datei sichern<small>Alles inkl. Sprachmemos (.json)</small></button>
-      <button class="sheet-btn" data-x="imp"><span class="em">📂</span>Backup aus Datei laden</button>
-      <button class="sheet-btn" data-x="md"><span class="em">📝</span>Als Text exportieren (Markdown)</button>
-    </div>
-    <div class="sheet-grp">
-      <button class="sheet-btn" data-x="tips"><span class="em">💡</span>Ideen &amp; Tipps zur Nutzung</button>
-    </div>
-    <button class="sheet-close">Schließen</button>`);
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-  $$("#vseg button",sheetPanel).forEach(b=>b.onclick=()=>{ state.settings.view=b.dataset.v; save(); render(); closeSheet(); });
-  $$("[data-x]",sheetPanel).forEach(b=>b.onclick=()=>{
-    const x=b.dataset.x;
-    if(x==="theme"){ state.settings.theme = state.settings.theme==="dark"?"light":"dark"; save(); render(); closeSheet(); }
-    else if(x==="groups"){ groupManageSheet(); }
-    else if(x==="drills"){ drillManageSheet(); }
-    else if(x==="lib"){ closeSheet(); refreshLib(); }
-    else if(x==="tpl"){ templateSheet(); }
-    else if(x==="stt"){ sttSheet(); }
-    else if(x==="cloud"){ cloudSheet(); }
-    else if(x==="exp"){ exportJSON(); }
-    else if(x==="imp"){ importJSON(); }
-    else if(x==="md"){ exportMarkdown(); }
-    else if(x==="tips"){ tipsSheet(); }
-  });
+    <div class="tips"><b>Token anlegen:</b> GitHub → Settings → Developer settings → Fine-grained tokens → nur dieses Repo → Contents: Read and write. Auf dem zweiten Gerät denselben Token eintragen.</div>`);
+  const store=()=>{
+    localStorage.setItem("tb_gh_tok",$("#cfTok",sheetPanel).value.trim());
+    localStorage.setItem("tb_gh_user",$("#cfUser",sheetPanel).value.trim());
+    localStorage.setItem("tb_gh_repo",$("#cfRepo",sheetPanel).value.trim());
+    localStorage.setItem("tb_gh_branch",$("#cfBranch",sheetPanel).value.trim()||"main");
+    localStorage.setItem("tb_lib_repo",$("#cfLibRepo",sheetPanel).value.trim());
+    localStorage.setItem("tb_lib_file",$("#cfLibFile",sheetPanel).value.trim()||"uebungssammlung.json");
+    localStorage.setItem("tb_cloud_audio",$("#cfAudio",sheetPanel).checked?"1":"0");
+    localStorage.setItem("tb_cloud_auto",$("#cfAuto",sheetPanel).checked?"1":"0");
+  };
+  $("#cfSave",sheetPanel).addEventListener("click",()=>{ store(); localStorage.setItem("tb_cloud_on","1"); closeSheet(); setDot("busy","…"); toast("Cloud-Sync aktiv"); syncNow(true); });
+  $("#cfSync",sheetPanel).addEventListener("click",()=>{ store(); localStorage.setItem("tb_cloud_on","1"); syncNow(true); });
+  $("#cfOff",sheetPanel).addEventListener("click",()=>{ localStorage.setItem("tb_cloud_on","0"); setDot("off","Aus"); toast("Sync aus"); closeSheet(); });
 }
 
-function tipsSheet(){
-  openSheet(`
-    <h2>So holst du mehr raus</h2>
-    <div class="tips">
-      <b>Was aus Google Notizen bleibt</b>
-      <ul>
-        <li>Angepinnte Notizen für <b>Ideen</b> und <b>Teilnehmer</b> – oben, immer sichtbar.</li>
-        <li>Jede Stunde = eine Karte mit <b>Datum als Überschrift</b> und Bullet-Points.</li>
-        <li>Sofort lostippen, alles speichert automatisch.</li>
-      </ul>
-      <b>Was hier besser ist</b>
-      <ul>
-        <li><b>Tennis / Kondition getrennt</b> – Umschalter oben, nichts vermischt sich.</li>
-        <li><b>Stunden</b> (die Chip-Leiste): deine eigenen Trainings-Slots. Frei benennen, per „＋ Stunde“ jederzeit erweitern, per ✏︎ ordnen/löschen. Im Winter einfach neue anlegen.</li>
-        <li><b>Angepinnte Notizen sind stundenweise</b>: Ideen/Teilnehmer, die du bei einer bestimmten Stunde anpinnst, siehst du nur dort – nicht bei den anderen Stunden. Über den Dropdown im Notizkopf kannst du eine Notiz auch auf „allgemein“ (sichtbar unter „Alle Stunden“) stellen.</li>
-        <li><b>Punkte abhaken</b> statt Text durchstreichen – Fortschritt sichtbar (4/9).</li>
-        <li><b>Vorlagen</b>: neue Einheit startet mit Aufwärmen/Technik/Taktik/Spielformen/Ausklang.</li>
-        <li><b>„Offene Punkte übernehmen“</b>: nicht Erledigtes wandert automatisch in die nächste Einheit <i>derselben Stunde</i>.</li>
-        <li><b>Nachbesprechung</b> pro Einheit + <b>Sprachmemo</b> direkt nach dem Training – vor der nächsten Stunde hörst du rein.</li>
-        <li><b>Transkript</b>: unter jeder Aufnahme „✨ transkribieren“ – wandelt das Memo per KI (Groq/OpenAI Whisper) in Text um. Einmal im Menü → 🎙 Transkription einen (kostenlosen) Groq-Key hinterlegen. Optional automatisch nach jeder Aufnahme.</li>
-        <li><b>Unterpunkte</b>: mit <b>⇥</b> (oder Tab-Taste) einen Punkt einrücken; im leeren Feld rückt Backspace wieder aus.</li>
-        <li><b>Anwesenheit</b>: bei einer Einheit mit Stunde die Namen antippen. Kader &amp; Quote in „Stunden verwalten → Termin &amp; Kader“.</li>
-        <li><b>Wochenplan</b> (Menü → 🗓️ Woche): Stunden mit festem Wochentag+Uhrzeit, nach nächstem Termin sortiert, Einheit mit einem Tap anlegen.</li>
-        <li><b>Zielzonen-Skizze</b> am Punkt (📐): Platz von oben, Zonen + Ballwege einzeichnen – kommt auch mit Übungen aus der Sammlung.</li>
-        <li><b>Schwerpunkte</b> je Einheit (Feld unter dem Titel): erscheinen als ＃-Filter über den Karten.</li>
-        <li><b>Minuten je Punkt</b>: kleines Feld rechts am Punkt, oben steht die geplante Gesamtdauer.</li>
-        <li><b>Offen-Zähler</b> auf dem Stunden-Chip: so viele Punkte waren in der letzten Einheit noch offen.</li>
-        <li><b>📚 aus Sammlung</b>: zieht Übungen und ganze Stunden-Bausteine aus der geteilten Übungssammlung (zweite App) – Einzelübung als Punkt, Baustein als Block oder neue Einheit.</li>
-        <li><b>Vorlage pro Stunde</b>: in „Stunden verwalten“ → „Vorlage“ ein eigenes Startgerüst nur für diese Stunde.</li>
-        <li><b>Übungskatalog (lokal)</b>: eigene Drills, nur auf diesem Gerät bzw. im Cloud-Sync.</li>
-        <li><b>Verlauf-Ansicht</b>: schnell durch alte Stunden scrollen.</li>
-        <li><b>Cloud-Sync</b> (☁️ im Menü): Handy und Mac über dein GitHub-Repo abgleichen, inkl. Sprachmemos und Konflikt-Log.</li>
-        <li><b>Backup als Datei</b>: zusätzlich, unabhängig vom Browser.</li>
-      </ul>
-      <b>Weitere Ideen</b>
-      <ul>
-        <li>Nach dem Training 30 Sek. Memo sprechen: „Was lief, was nächstes Mal.“</li>
-        <li>Ideen-Notiz als Sammelbecken – per „💡 aus Ideen“ in die Planung ziehen.</li>
-        <li>Stunden-Namen mit Uhrzeit + Gruppe (z. B. „Mi 17:00 Aufbaugruppe“) – dann ist die Chip-Leiste dein Wochenplan.</li>
-        <li>Intensität in die Notiz (locker / normal / hart) für die Belastungssteuerung.</li>
-        <li>Am Saisonende alte Stunden per ✏︎ löschen (Einheiten bleiben im Verlauf) und die Winter-Stunden neu anlegen.</li>
-      </ul>
-    </div>
-    <button class="sheet-close">Schließen</button>`);
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
+/* ---------- Backup ---------- */
+function downloadBlob(blob,name){
+  const u=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},500);
+  toast("Datei „"+name+"“ erstellt");
 }
-
-/* ---------- Drill-Katalog ---------- */
-function drillPickList(area, onPick, manage){
-  let tag = "alle";
-  const host = document.createElement("div");
-  function draw(){
-    const tags = ["alle", ...new Set(state.drills.filter(d=>area==="alle"||d.area===area).flatMap(d=>d.tags||[]))];
-    host.innerHTML = `<div class="tagbar">${tags.map(t=>`<button data-t="${esc(t)}" class="${t===tag?"on":""}">${esc(t)}</button>`).join("")}</div>
-      ${manage?`<div class="mini-form">
-        <input id="nfName" placeholder="Übungsname">
-        <input id="nfTags" placeholder="Tags, mit Komma">
-        <input id="nfNote" placeholder="Kurzbeschreibung (optional)">
-        <button id="nfAdd">＋ Übung hinzufügen</button></div>`:""}
-      <div id="dlist"></div>`;
-    $$(".tagbar button",host).forEach(b=>b.onclick=()=>{ tag=b.dataset.t; draw(); });
-    const dl=$("#dlist",host);
-    const items = state.drills.filter(d=>(area==="alle"||d.area===area) && (tag==="alle"||(d.tags||[]).includes(tag)));
-    if(!items.length) dl.innerHTML=`<div style="color:var(--faint);font-size:13px;padding:8px">Noch keine Übungen.</div>`;
-    items.forEach(d=>{
-      const row=document.createElement("div"); row.className="pick";
-      row.innerHTML=`${onPick?'<button class="p-add">＋</button>':""}
-        <div class="p-main"><div>${esc(d.name)}</div>
-        ${d.note?`<div class="p-tags">${esc(d.note)}</div>`:""}
-        <div class="p-tags">${(d.tags||[]).map(esc).join(" · ")}${manage?' · '+(d.area==="tennis"?"Tennis":"Kondition"):""}</div></div>
-        ${manage?'<button class="p-add" style="color:var(--faint)">✕</button>':""}`;
-      if(onPick) $(".p-add",row).onclick=()=>onPick(d);
-      if(manage) row.querySelectorAll(".p-add")[onPick?1:0].onclick=()=>{ // letzter Button = löschen
-        if(confirm("Übung löschen?")){ state.tomb.drill[d.id]=Date.now(); state.drills=state.drills.filter(x=>x.id!==d.id); save(); draw(); }
-      };
-      dl.appendChild(row);
-    });
-    if(manage){
-      $("#nfAdd",host).onclick=()=>{
-        const name=$("#nfName",host).value.trim(); if(!name) return;
-        const ar = area==="alle" ? "tennis" : area;
-        state.drills.push({id:uid(),area:ar,name,
-          tags:$("#nfTags",host).value.split(",").map(s=>s.trim()).filter(Boolean),
-          note:$("#nfNote",host).value.trim()});
-        save(); draw();
-      };
-    }
-  }
-  draw();
-  return host;
-}
-function drillManageSheet(){
-  openSheet(`<h2>Übungskatalog</h2><div class="sub">Sammle Drills und Übungen. In der Einheit über „＋ aus Katalog“ einfügen.</div><div id="dhost"></div><button class="sheet-close">Schließen</button>`);
-  $("#dhost",sheetPanel).appendChild(drillPickList(state.settings.area,null,true));
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-}
-function openDrillPick(s){
-  openSheet(`<h2>Übung einfügen</h2><div class="sub">Tippe auf ＋ – die Übung wird als Punkt hinzugefügt.</div><div id="dhost"></div><button class="sheet-close">Fertig</button>`);
-  $("#dhost",sheetPanel).appendChild(drillPickList(s.area,(d)=>{
-    s.items.push({id:uid(),text:d.name+(d.note?" – "+d.note:""),done:false,group:"Aus Katalog"});
-    touch(s); save(); render(); toast("„"+d.name+"“ hinzugefügt");
-  },false));
-  $(".sheet-close",sheetPanel).onclick=()=>{ closeSheet(); };
-}
-function openIdeaPick(s){
-  const cand = state.pins.filter(p=>p.area===s.area && /idee/i.test(p.title));
-  const pin = cand.find(p=>p.groupId===s.groupId) || cand.find(p=>!p.groupId);
-  const lines = pin ? pin.body.split("\n").map(l=>l.replace(/^[-*•\s]+/,"").trim()).filter(Boolean) : [];
-  openSheet(`<h2>Aus „Ideen“ übernehmen</h2>
-    <div class="sub">${pin?"Tippe eine Idee an, um sie als Punkt einzufügen.":"Keine Ideen-Notiz für diesen Bereich gefunden."}</div>
-    <div id="ilist"></div><button class="sheet-close">Fertig</button>`);
-  const il=$("#ilist",sheetPanel);
-  lines.forEach(t=>{
-    const r=document.createElement("div"); r.className="pick";
-    r.innerHTML=`<button class="p-add">＋</button><div class="p-main">${esc(t)}</div>`;
-    r.querySelector(".p-add").onclick=()=>{
-      s.items.push({id:uid(),text:t,done:false,group:"Aus Ideen"});
-      touch(s); save(); render(); toast("Idee übernommen");
-    };
-    il.appendChild(r);
-  });
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-}
-
-/* ---------- Vorlagen bearbeiten ---------- */
-function tplToText(arr){ return (arr||[]).map(g=>["Gruppe: "+g.group, ...(g.items||[])].join("\n")).join("\n"); }
-function textToTpl(txt){
-  const out=[]; let cur=null;
-  txt.split("\n").forEach(line=>{
-    const m=line.match(/^\s*Gruppe:\s*(.+)$/i);
-    if(m){ cur={group:m[1].trim(),items:[]}; out.push(cur); }
-    else if(cur){ cur.items.push(line.trim()); }
-    else if(line.trim()){ cur={group:"Allgemein",items:[line.trim()]}; out.push(cur); }
-  });
-  return out;
-}
-function templateSheet(){
-  openSheet(`<h2>Vorlagen</h2>
-    <div class="sub">Zeilen mit <b>Gruppe:</b> starten einen Abschnitt, andere Zeilen sind Punkte. Wird bei „Vorlage“ als Startgerüst genutzt.</div>
-    <div class="blk-label">🎾 Tennis</div>
-    <textarea class="big" id="tplT"></textarea>
-    <div class="blk-label">💪 Kondition</div>
-    <textarea class="big" id="tplK"></textarea>
-    <button class="sheet-btn" id="tplSave" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">Speichern</button>
-    <button class="sheet-btn" id="tplReset" style="justify-content:center">Auf Standard zurücksetzen</button>
-    <button class="sheet-close">Abbrechen</button>`);
-  $("#tplT",sheetPanel).value = tplToText(state.templates.tennis);
-  $("#tplK",sheetPanel).value = tplToText(state.templates.kondition);
-  $("#tplSave",sheetPanel).onclick=()=>{
-    state.templates.tennis = textToTpl($("#tplT",sheetPanel).value);
-    state.templates.kondition = textToTpl($("#tplK",sheetPanel).value);
-    state.templatesUpdatedAt = Date.now();
-    save(); toast("Vorlagen gespeichert"); closeSheet();
-  };
-  $("#tplReset",sheetPanel).onclick=()=>{
-    if(!confirm("Beide Vorlagen auf Standard zurücksetzen?")) return;
-    state.templates = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
-    state.templatesUpdatedAt = Date.now();
-    save(); templateSheet();
-  };
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-}
-
-/* ---------- Stunden / Gruppen ---------- */
-function addGroupSheet(){
-  const defArea = state.settings.area==="kondition" ? "kondition" : "tennis";
-  openSheet(`
-    <h2>Neue Stunde</h2>
-    <div class="sub">Deine eigenen Trainings-Slots – benenne sie frei (z. B. „Di 17:30 Herren“, „Kids Mi“, „Athletik A“).</div>
-    <div class="mini-form">
-      <label class="tiny">Name</label>
-      <input id="ngName" placeholder="z. B. Mo 16:00 Aufbaugruppe" autocomplete="off">
-      <label class="tiny">Bereich</label>
-      <select id="ngArea">
-        <option value="tennis"${defArea==="tennis"?" selected":""}>🎾 Tennis</option>
-        <option value="kondition"${defArea==="kondition"?" selected":""}>💪 Kondition</option>
-      </select>
-      <button id="ngAdd">Stunde anlegen</button>
-    </div>
-    <button class="sheet-close">Abbrechen</button>`);
-  const go=()=>{
-    const name=$("#ngName",sheetPanel).value.trim(); if(!name) return;
-    const area=$("#ngArea",sheetPanel).value;
-    const g={id:uid(),name,area,order:(Math.max(-1,...state.groups.map(x=>x.order??0))+1),updatedAt:Date.now()};
-    state.groups.push(g);
-    state.settings.group=g.id;
-    if(state.settings.area!=="alle" && state.settings.area!==area) state.settings.area=area;
-    save(); render(); closeSheet(); toast("Stunde „"+name+"“ angelegt");
-  };
-  $("#ngAdd",sheetPanel).onclick=go;
-  $("#ngName",sheetPanel).onkeydown=e=>{ if(e.key==="Enter") go(); };
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-  requestAnimationFrame(()=>$("#ngName",sheetPanel).focus());
-}
-
-function groupManageSheet(){
-  const rows = state.groups.slice().sort((x,y)=>(x.order??0)-(y.order??0))
-    .map(g=>{
-      const n = state.sessions.filter(s=>s.groupId===g.id).length;
-      return `<div class="pick" data-id="${g.id}">
-        <div class="p-main">
-          <input class="gm-name" value="${esc(g.name)}" style="width:100%;background:none;border:0;font-size:14px;font-weight:600">
-          <div class="p-tags"><select class="gm-area">
-            <option value="tennis"${g.area==="tennis"?" selected":""}>🎾 Tennis</option>
-            <option value="kondition"${g.area==="kondition"?" selected":""}>💪 Kondition</option>
-          </select> · ${n} Einheit(en)${g.weekday!=null?" · "+WEEKDAYS[g.weekday]+(g.time?" "+g.time:""):""}<br>
-          <a class="gm-tpl" style="color:var(--accent)">Vorlage${g.template&&g.template.length?" ✓":""}</a> · <a class="gm-more" style="color:var(--accent)">Termin &amp; Kader${(g.roster||[]).length?" ("+g.roster.length+")":""}</a></div>
-        </div>
-        <button class="p-add gm-up" style="color:var(--faint)">▲</button>
-        <button class="p-add gm-dn" style="color:var(--faint)">▼</button>
-        <button class="p-add gm-del" style="color:var(--faint)">✕</button>
-      </div>`;
-    }).join("");
-  openSheet(`
-    <h2>Stunden verwalten</h2>
-    <div class="sub">Umbenennen, Bereich ändern, Reihenfolge setzen. Beim Löschen bleiben die Einheiten erhalten – sie stehen dann unter „ohne Stunde“.</div>
-    ${rows||'<div class="cf-status">Noch keine Stunden.</div>'}
-    <button class="sheet-btn" id="gmAdd" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">＋ Neue Stunde</button>
-    <button class="sheet-close">Fertig</button>`);
-  const commit=(rerender)=>{ save(); render(); if(rerender) groupManageSheet(); };
-  $$(".pick",sheetPanel).forEach(row=>{
-    const id=row.dataset.id, g=state.groups.find(x=>x.id===id);
-    $(".gm-name",row).oninput=e=>{ g.name=e.target.value; g.updatedAt=Date.now(); saveSoft(); };
-    $(".gm-name",row).onblur=()=>commit(false);
-    $(".gm-area",row).onchange=e=>{ g.area=e.target.value; g.updatedAt=Date.now(); commit(true); };
-    $(".gm-tpl",row).onclick=()=>groupTemplateSheet(g);
-    $(".gm-more",row).onclick=()=>groupExtrasSheet(g);
-    $(".gm-up",row).onclick=()=>{ reorderGroup(id,-1); commit(true); };
-    $(".gm-dn",row).onclick=()=>{ reorderGroup(id, 1); commit(true); };
-    $(".gm-del",row).onclick=()=>{
-      if(!confirm("Stunde „"+g.name+"“ löschen? Einheiten bleiben erhalten.")) return;
-      state.tomb.group[id]=Date.now();
-      state.groups=state.groups.filter(x=>x.id!==id);
-      if(state.settings.group===id) state.settings.group="alle";
-      commit(true);
-    };
-  });
-  $("#gmAdd",sheetPanel).onclick=addGroupSheet;
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-}
-function attendQuote(gid, pid){
-  const ss = state.sessions.filter(s=>s.groupId===gid);
-  const was = ss.filter(s=>s.attend && s.attend[pid]).length;
-  return was + "/" + ss.length;
-}
-function groupExtrasSheet(g){
-  g.roster = g.roster || [];
-  openSheet(`<h2>${esc(g.name)}</h2>
-    <div class="field"><label>Fester Wochentag</label><select id="gxW">
-      <option value="">— kein fester Termin —</option>
-      ${WEEKDAYS.map((d,i)=>`<option value="${i}"${g.weekday===i?" selected":""}>${d}</option>`).join("")}
-    </select></div>
-    <div class="field"><label>Uhrzeit</label><input id="gxT" type="time" value="${esc(g.time||"")}"></div>
-    <div class="blk-label">Kader</div>
-    <div id="gxRoster"></div>
-    <button class="sheet-btn" id="gxAdd" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">＋ Person</button>
-    <button class="sheet-close">Fertig</button>`);
-  $("#gxW",sheetPanel).onchange=e=>{ g.weekday = e.target.value===""?undefined:+e.target.value; g.updatedAt=Date.now(); save(); render(); };
-  $("#gxT",sheetPanel).onchange=e=>{ g.time = e.target.value||undefined; g.updatedAt=Date.now(); save(); render(); };
-  const draw=()=>{
-    const host=$("#gxRoster",sheetPanel); host.innerHTML="";
-    if(!g.roster.length) host.innerHTML='<div class="cf-status">Noch niemand im Kader.</div>';
-    g.roster.forEach((p,idx)=>{
-      const row=document.createElement("div"); row.className="pick";
-      row.innerHTML=`<input class="rn" value="${esc(p.name)}" style="flex:1;background:none;border:0;font-size:14px;font-weight:600">
-        <span class="p-tags" style="margin:0 6px">war bei ${attendQuote(g.id,p.id)}</span>
-        <button class="p-add" style="color:var(--faint)">✕</button>`;
-      $(".rn",row).oninput=e=>{ p.name=e.target.value; g.updatedAt=Date.now(); saveSoft(); };
-      $(".p-add",row).onclick=()=>{ if(!confirm("„"+p.name+"“ aus dem Kader nehmen? (Anwesenheits-Häkchen bleiben)")) return;
-        g.roster.splice(idx,1); g.updatedAt=Date.now(); save(); render(); draw(); };
-      host.appendChild(row);
-    });
-  };
-  draw();
-  $("#gxAdd",sheetPanel).onclick=()=>{ const n=prompt("Name:"); if(!n||!n.trim())return;
-    g.roster.push({id:uid(),name:n.trim()}); g.updatedAt=Date.now(); save(); render(); draw(); };
-  $(".sheet-close",sheetPanel).onclick=()=>{ closeSheet(); groupManageSheet(); };
-}
-function reorderGroup(id,dir){
-  const sorted = state.groups.slice().sort((x,y)=>(x.order??0)-(y.order??0));
-  const i = sorted.findIndex(g=>g.id===id), j=i+dir;
-  if(i<0||j<0||j>=sorted.length) return;
-  [sorted[i],sorted[j]]=[sorted[j],sorted[i]];
-  sorted.forEach((g,k)=>{ g.order=k; g.updatedAt=Date.now(); });
-}
-function groupTemplateSheet(g){
-  openSheet(`<h2>Vorlage: ${esc(g.name)}</h2>
-    <div class="sub">Eigenes Startgerüst nur für diese Stunde. Zeilen mit <b>Gruppe:</b> starten einen Block, andere Zeilen sind Punkte. Leer lassen = keine eigene Vorlage (dann greift die Bereichsvorlage).</div>
-    <textarea class="big" id="gtpl" placeholder="Gruppe: Aufwärmen&#10;Einlaufen&#10;Gruppe: Hauptteil&#10;…"></textarea>
-    <button class="sheet-btn" id="gtSave" style="justify-content:center;color:var(--accent);border-color:var(--accent);margin-top:6px">Speichern</button>
-    <button class="sheet-btn" id="gtClear" style="justify-content:center">Vorlage entfernen</button>
-    <button class="sheet-close">Abbrechen</button>`);
-  $("#gtpl",sheetPanel).value = g.template ? tplToText(g.template) : "";
-  $("#gtSave",sheetPanel).onclick=()=>{
-    const t = textToTpl($("#gtpl",sheetPanel).value).filter(x=>x.items.some(i=>i.trim())||x.group);
-    g.template = t.length ? t : null;
-    g.updatedAt = Date.now();
-    save(); toast(g.template?"Stunden-Vorlage gespeichert":"Vorlage geleert"); closeSheet(); groupManageSheet();
-  };
-  $("#gtClear",sheetPanel).onclick=()=>{ g.template=null; g.updatedAt=Date.now(); save(); closeSheet(); groupManageSheet(); };
-  $(".sheet-close",sheetPanel).onclick=()=>{ closeSheet(); groupManageSheet(); };
-}
-
-/* ---------- Neue-Einheit-Sheet ---------- */
-function newSessionSheet(){
-  const a = state.settings.area;
-  const preGid = (()=>{ const g=state.groups.find(x=>x.id===state.settings.group); return g?g.id:""; })();
-  const opts = grp=>state.groups.filter(x=>x.area===grp).sort((x,y)=>(x.order??0)-(y.order??0))
-    .map(x=>`<option value="${x.id}"${x.id===preGid?" selected":""}>${esc(x.name)}</option>`).join("");
-  openSheet(`
-    <h2>Neue Einheit</h2>
-    <div class="sub">Datum ist heute – im Editor änderbar.</div>
-    <div class="mini-form">
-      <label class="tiny">Stunde</label>
-      <select id="nsGroup">
-        <option value="">— ohne Stunde —</option>
-        <optgroup label="🎾 Tennis">${opts("tennis")}</optgroup>
-        <optgroup label="💪 Kondition">${opts("kondition")}</optgroup>
-      </select>
-    </div>
-    <div class="toggle-row"><input type="checkbox" id="coChk" ${state.settings.carryOver?"checked":""}>
-      <label for="coChk">Offene Punkte aus der letzten Einheit derselben Stunde übernehmen</label></div>
-    <button class="sheet-btn hidden" id="nsGroupTpl" style="justify-content:center;color:var(--accent);border-color:var(--accent)"></button>
-    <div class="sheet-grp">
-      <button class="sheet-btn" data-n="tennis|1"><span class="em">🎾</span>Tennis – mit Vorlage<small>Aufwärmen · Technik · Taktik · Spielformen · Ausklang</small></button>
-      <button class="sheet-btn" data-n="tennis|0"><span class="em">🎾</span>Tennis – leer</button>
-      <button class="sheet-btn" data-n="kondition|1"><span class="em">💪</span>Kondition – mit Vorlage<small>Mobilisation · Aktivierung · Hauptteil · Core · Cool-down</small></button>
-      <button class="sheet-btn" data-n="kondition|0"><span class="em">💪</span>Kondition – leer</button>
-    </div>
-    <button class="sheet-close">Abbrechen</button>`);
-  $("#coChk",sheetPanel).onchange=e=>{ state.settings.carryOver=e.target.checked; save(); };
-  const start=(area,src,gid)=>{
-    closeSheet();
-    if(state.settings.area!=="alle" && state.settings.area!==area) state.settings.area=area;
-    if(gid) state.settings.group = gid;
-    newSession(area, src, gid);
-  };
-  const dim = ()=>{
-    const g=state.groups.find(x=>x.id===$("#nsGroup",sheetPanel).value);
-    $$("[data-n]",sheetPanel).forEach(b=>{
-      const ba=b.dataset.n.split("|")[0];
-      b.style.opacity = g ? (ba===g.area?"1":".4") : ((a==="tennis"||a==="kondition") && ba!==a ? ".5":"1");
-    });
-    const gt=$("#nsGroupTpl",sheetPanel);
-    if(g && g.template && g.template.length){
-      gt.classList.remove("hidden");
-      gt.textContent = "🧩 Vorlage der Stunde „"+g.name+"“";
-      gt.onclick=()=>start(g.area,"group",g.id);
-    } else gt.classList.add("hidden");
-  };
-  $("#nsGroup",sheetPanel).onchange=dim; dim();
-  $$("[data-n]",sheetPanel).forEach(b=>b.onclick=()=>{
-    const [area,tpl]=b.dataset.n.split("|");
-    const selG = state.groups.find(x=>x.id===$("#nsGroup",sheetPanel).value);
-    const gid = selG && selG.area===area ? selG.id : null;
-    start(area, tpl==="1" ? "area" : null, gid);
-  });
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-}
-
-/* ---------- Export / Import ---------- */
 async function exportJSON(){
-  toast("Backup wird erstellt…");
+  toast("Backup wird erstellt …");
   const audio={};
-  try{
-    const keys=await idbKeys();
-    for(const k of keys){ const b=await idbGet(k); if(b) audio[k]=await blobToDataURL(b); }
-  }catch(e){ console.warn(e); }
-  const payload={app:"trainingsbuch",exportedAt:new Date().toISOString(),state,audio};
-  downloadBlob(new Blob([JSON.stringify(payload)],{type:"application/json"}),
-    "trainingsbuch-"+todayISO()+".json");
+  try{ for(const k of await idbKeys()){ const b=await idbGet(k); if(b) audio[k]=await blobToDataURL(b); } }catch(e){ console.warn(e); }
+  downloadBlob(new Blob([JSON.stringify({app:"trainingsbuch",exportedAt:new Date().toISOString(),state,audio})],{type:"application/json"}),"trainingsbuch-"+todayISO()+".json");
   closeSheet();
 }
 function importJSON(){
@@ -1713,61 +1238,14 @@ function importJSON(){
   inp.onchange=async()=>{
     const f=inp.files[0]; if(!f) return;
     try{
-      const data=JSON.parse(await f.text());
-      const incoming = data.state || data;
-      if(!incoming.sessions && !incoming.pins) throw new Error("Format");
+      const data=JSON.parse(await f.text()); const inc=data.state||data;
+      if(!inc.sessions&&!inc.groups) throw new Error("Format");
       if(!confirm("Backup laden? Der aktuelle Stand auf diesem Gerät wird ersetzt.")) return;
-      if(data.audio){ for(const [k,d] of Object.entries(data.audio)){ try{ await idbPut(k, await dataURLToBlob(d)); }catch(e){} } }
-      state = ensure(incoming); openIds.clear(); save(); render(); closeSheet();
-      toast("Backup geladen");
+      if(data.audio){ for(const [k,d] of Object.entries(data.audio)){ try{ await idbPut(k,await dataURLToBlob(d)); }catch(e){} } }
+      state=ensure(inc); save(); closeSheet(); go("/"); toast("Backup geladen");
     }catch(e){ alert("Datei konnte nicht gelesen werden."); }
   };
   inp.click();
-}
-function exportMarkdown(){
-  const L=[]; L.push("# Trainingsbuch — "+todayISO(),"");
-  const sessBlock = (s)=>{
-    L.push("#### "+fmtDate(s.date)+(s.title?" — "+s.title:"")+(s.status==="done"?"  ✅":""));
-    const planMin=s.items.reduce((n,i)=>n+(+i.min||0),0);
-    const meta=[s.place,(planMin||s.durationMin)&&((planMin||s.durationMin)+" min"),s.participants&&s.participants+" TN",(s.tags||[]).length&&"＃"+s.tags.join(" ＃")].filter(Boolean).join(" · ");
-    if(meta) L.push("_"+meta+"_");
-    const grp = state.groups.find(x=>x.id===s.groupId);
-    if(grp && (grp.roster||[]).length && Object.keys(s.attend||{}).length){
-      const da = grp.roster.filter(p=>s.attend[p.id]).map(p=>p.name);
-      const fehlt = grp.roster.filter(p=>!s.attend[p.id]).map(p=>p.name);
-      L.push("", "👥 da: "+da.join(", ")+(fehlt.length?"  ·  fehlt: "+fehlt.join(", "):""));
-    }
-    let g=null;
-    s.items.forEach(i=>{ if((i.group||"")!==(g||"")&&i.group){ L.push("","**"+i.group+"**"); g=i.group; }
-      L.push("  ".repeat(i.indent||0)+"- ["+(i.done?"x":" ")+"] "+i.text+(i.min?" ("+i.min+"′)":"")+(i.court&&i.court.els&&i.court.els.length?" 📐":"")); });
-    if(s.note) L.push("", s.note);
-    if(s.reflection) L.push("", "> Nachbesprechung: "+s.reflection);
-    s.memos.forEach(m=>{ if(m.transcript) L.push("", "🎤 „"+m.transcript+"“"); });
-    if(s.memos.length && !s.memos.some(m=>m.transcript)) L.push("", "🎤 "+s.memos.length+" Sprachmemo(s)");
-    L.push("");
-  };
-  for(const area of ["tennis","kondition"]){
-    L.push("## "+(area==="tennis"?"🎾 Tennis":"💪 Kondition"),"");
-    const buckets = groupsForArea(area).map(g=>({name:g.name,id:g.id}));
-    buckets.push({name:"Allgemein (ohne Stunde)",id:null});
-    buckets.forEach(bk=>{
-      const pins = state.pins.filter(p=>p.area===area && (p.groupId||null)===bk.id);
-      const ss = state.sessions.filter(s=>s.area===area && (s.groupId||null)===bk.id)
-        .sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-      if(!pins.length && !ss.length) return;
-      L.push("### "+bk.name,"");
-      pins.forEach(p=>{ L.push("**📌 "+p.title+"**", p.body||"", ""); });
-      ss.forEach(sessBlock);
-    });
-  }
-  downloadBlob(new Blob([L.join("\n")],{type:"text/markdown"}), "trainingsbuch-"+todayISO()+".md");
-  closeSheet();
-}
-function downloadBlob(blob,name){
-  const u=URL.createObjectURL(blob); const a=document.createElement("a");
-  a.href=u; a.download=name; document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },500);
-  toast("Datei „"+name+"“ erstellt");
 }
 
 /* ============================================================
@@ -1902,7 +1380,7 @@ function pushSyncLog(entry){
 
 /* ---- Ablauf ---- */
 let syncing=false, syncT=null, remoteSha=null, resyncPending=false, editingUntil=0;
-function setDot(s,txt){ const el=$("#syncDot"); if(el){ el.dataset.s=s; el.title=txt||""; } }
+function setDot(s,txt){ dotState={s,t:txt||""}; const el=$("#syncDot"); if(el){ el.dataset.s=s; el.title=txt||""; } }
 function markEditing(){ editingUntil = Date.now() + 15000; }
 function isEditing(){
   if(Date.now() < editingUntil) return true;
@@ -2017,220 +1495,10 @@ function cloudInit(){
   window.addEventListener("online",()=>{ if(CFG.on() && !isEditing()) syncNow(false); });
 }
 
-function cloudSheet(){
-  const last = +localStorage.getItem("tb_cloud_last")||0;
-  openSheet(`
-    <h2>Cloud-Sync · Handy ↔ Mac</h2>
-    <div class="sub">Legt <code>${esc(CFG.file())}</code> in dein GitHub-Repo und gleicht nach jeder Änderung ab. Pro Eintrag gewinnt der neuere Stand.</div>
-    <div class="mini-form">
-      <label class="tiny">GitHub-Token (Fine-grained, nur dieses Repo, Contents: Read and write)</label>
-      <input id="cfTok" type="password" autocomplete="off" placeholder="github_pat_…" value="${esc(CFG.tok())}">
-      <label class="tiny">Benutzer / Owner</label>
-      <input id="cfUser" autocomplete="off" value="${esc(CFG.user())}">
-      <label class="tiny">Repository</label>
-      <input id="cfRepo" autocomplete="off" value="${esc(CFG.repo())}">
-      <label class="tiny">Branch</label>
-      <input id="cfBranch" autocomplete="off" value="${esc(CFG.branch())}">
-      <label class="tiny">Übungssammlung – Repository (nur lesen, für „📚 aus Sammlung“)</label>
-      <input id="cfLibRepo" autocomplete="off" value="${esc(CFG.libRepo())}">
-      <label class="tiny">Übungssammlung – Datei</label>
-      <input id="cfLibFile" autocomplete="off" value="${esc(CFG.libFile())}">
-    </div>
-    <div class="toggle-row"><input type="checkbox" id="cfAudio" ${CFG.audio()?"checked":""}>
-      <label for="cfAudio">Sprachmemos mitsynchronisieren (Dateien unter <code>audio/</code>)</label></div>
-    <div class="toggle-row"><input type="checkbox" id="cfAuto" ${CFG.auto()?"checked":""}>
-      <label for="cfAuto">Automatisch abgleichen (nach jeder Änderung &amp; beim Öffnen)</label></div>
-    <div class="sheet-grp">
-      <button class="sheet-btn" id="cfSave" style="justify-content:center;color:var(--accent);border-color:var(--accent)">Speichern &amp; einschalten</button>
-      <button class="sheet-btn" id="cfSync" style="justify-content:center">Jetzt abgleichen</button>
-      <button class="sheet-btn" id="cfOff" style="justify-content:center;color:var(--danger)">Sync ausschalten</button>
-    </div>
-    <div class="cf-status">${CFG.on()?"Status: aktiv":"Status: aus"}${last?" · zuletzt "+new Date(last).toLocaleString("de-DE"):""}</div>
-    ${syncLogHtml()}
-    <div class="tips">
-      <b>Token anlegen (einmalig)</b>
-      <ul>
-        <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token.</li>
-        <li>Repository access: <b>Only select repositories</b> → dein Repo.</li>
-        <li>Permissions → Repository → <b>Contents: Read and write</b>.</li>
-        <li>Token kopieren, oben einfügen, „Speichern & einschalten“.</li>
-        <li>Auf dem zweiten Gerät die Seite öffnen, denselben Token eintragen – fertig.</li>
-      </ul>
-      <div style="color:var(--faint)">Der Token liegt nur in diesem Browser (localStorage). Bei einem geteilten Gerät besser ein privates Repo und ein Token nur mit Contents-Recht.</div>
-    </div>
-    <button class="sheet-close">Schließen</button>`);
-  $("#cfSave",sheetPanel).onclick=()=>{
-    cfgSet("tb_gh_tok",$("#cfTok",sheetPanel).value.trim());
-    cfgSet("tb_gh_user",$("#cfUser",sheetPanel).value.trim());
-    cfgSet("tb_gh_repo",$("#cfRepo",sheetPanel).value.trim());
-    cfgSet("tb_gh_branch",$("#cfBranch",sheetPanel).value.trim()||"main");
-    cfgSet("tb_lib_repo",$("#cfLibRepo",sheetPanel).value.trim());
-    cfgSet("tb_lib_file",$("#cfLibFile",sheetPanel).value.trim()||"uebungssammlung.json");
-    cfgSet("tb_cloud_audio",$("#cfAudio",sheetPanel).checked?"1":"0");
-    cfgSet("tb_cloud_auto",$("#cfAuto",sheetPanel).checked?"1":"0");
-    cfgSet("tb_cloud_on","1");
-    closeSheet(); setDot("busy","…"); toast("Cloud-Sync aktiv"); syncNow(true);
-  };
-  $("#cfSync",sheetPanel).onclick=()=>{
-    cfgSet("tb_gh_tok",$("#cfTok",sheetPanel).value.trim());
-    cfgSet("tb_gh_user",$("#cfUser",sheetPanel).value.trim());
-    cfgSet("tb_gh_repo",$("#cfRepo",sheetPanel).value.trim());
-    cfgSet("tb_gh_branch",$("#cfBranch",sheetPanel).value.trim()||"main");
-    cfgSet("tb_cloud_on","1");
-    syncNow(true);
-  };
-  $("#cfOff",sheetPanel).onclick=()=>{ cfgSet("tb_cloud_on","0"); setDot("off","Aus"); toast("Sync aus"); closeSheet(); };
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
-}
-function syncLogHtml(){
-  let log=[]; try{ log=JSON.parse(localStorage.getItem("tb_sync_log")||"[]"); }catch(e){}
-  if(!log.length) return "";
-  const rows = log.slice(0,8).map(e=>{
-    const t=new Date(e.at).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
-    const p=[]; if(e.neu)p.push(e.neu+" neu"); if(e.upd)p.push(e.upd+" geändert"); if(e.del)p.push(e.del+" entfernt");
-    return `<div style="display:flex;justify-content:space-between;gap:10px"><span>${t}</span><span style="color:var(--dim)">${p.join(" · ")}</span></div>`;
-  }).join("");
-  return `<div class="blk-label" style="margin-top:12px">Zuletzt zusammengeführt</div><div class="cf-status" style="line-height:1.9">${rows}</div>`;
-}
 
-/* ============================================================
-   Übungssammlung lesen (read-only) und einfügen
-   ============================================================ */
-let LIB = null;
-try{ const c=JSON.parse(localStorage.getItem("tb_lib_cache")||"null"); if(c&&c.data) LIB=c; }catch(e){}
-async function libLoad(force){
-  if(!force && LIB && Date.now()-LIB.at < 6e5) return LIB.data;
-  try{
-    const f = await ghGetAt(CFG.libUser(), CFG.libRepo(), CFG.libBranch(), CFG.libFile());
-    if(!f || (!f.content && !f.download_url)) throw new Error("Sammlung nicht gefunden");
-    let txt;
-    if(f.content) txt = b64dec(f.content);
-    else txt = await fetch(f.download_url).then(r=>r.text());
-    const parsed = JSON.parse(txt);
-    const data = parsed.state || parsed;
-    data.exercises ||= []; data.blueprints ||= [];
-    LIB = {at:Date.now(), data};
-    try{ localStorage.setItem("tb_lib_cache", JSON.stringify(LIB)); }catch(e){}
-    return data;
-  }catch(e){
-    if(LIB && LIB.data) return LIB.data;   // Fallback: alter Cache
-    throw e;
-  }
-}
-async function refreshLib(){
-  try{ const d=await libLoad(true); toast("Sammlung geladen: "+(d.exercises.length)+" Übungen, "+(d.blueprints.length)+" Bausteine"); }
-  catch(e){ toast("Sammlung: "+(e.message||e)); }
-}
-const LIB_TYPES = {aufwaermen:"Aufwärmen", korb:"Korbübung", uebung:"Übung", spielform:"Spielform"};
-const LIB_BALLS = {rot:"Rot", orange:"Orange", gruen:"Grün", gelb:"Gelb"};
-function openLibPick(session){
-  const hasTok = !!CFG.tok();
-  if(!LIB && !hasTok){ toast("Erst Cloud-Sync mit Token einrichten – dann lädt die Sammlung"); return; }
-  if(session.area==="kondition"){ toast("Die Übungssammlung ist reines Tennis"); return; }
-  let view="exercises", typ="alle", ball="alle", q="";
-  openSheet(`<h2>📚 Aus Sammlung einfügen</h2>
-    <div class="sub" id="libSub">${LIB?("Stand: "+new Date(LIB.at).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})):"lädt…"} · <a id="libRefresh" style="color:var(--accent)">aktualisieren</a></div>
-    <div class="seg" style="margin-bottom:10px"><button id="lvEx" class="on">Einzelübungen</button><button id="lvBp">Stunden-Bausteine</button></div>
-    <input id="libQ" placeholder="Suchen…" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px">
-    <div id="libTyp" class="tagbar" style="margin:0 0 6px"></div>
-    <div id="libBall" class="tagbar" style="margin:0 0 8px"></div>
-    <div id="libList"></div>
-    <button class="sheet-close">Fertig</button>`);
-  const seg=$("#lvEx",sheetPanel).parentElement;
-  $("#lvEx",sheetPanel).onclick=()=>{ view="exercises"; seg.children[0].classList.add("on"); seg.children[1].classList.remove("on"); draw(); };
-  $("#lvBp",sheetPanel).onclick=()=>{ view="blueprints"; seg.children[1].classList.add("on"); seg.children[0].classList.remove("on"); draw(); };
-  $("#libQ",sheetPanel).oninput=e=>{ q=e.target.value.toLowerCase(); draw(); };
-  $("#libRefresh",sheetPanel).onclick=async()=>{ $("#libSub",sheetPanel).textContent="lädt…"; await refreshLib(); draw(); };
-  $(".sheet-close",sheetPanel).onclick=closeSheet;
 
-  function addExercise(x){
-    session.items.push({id:uid(), text: x.name + (x.desc?" – "+x.desc:""), done:false,
-      group: LIB_TYPES[x.type] || (x.tags&&x.tags[0]) || "Aus Sammlung", min: x.durationMin||"",
-      court: (x.court&&x.court.els&&x.court.els.length)?x.court:undefined});
-    (x.tags||[]).forEach(t=>{ if(!(session.tags||[]).includes(t)) (session.tags=session.tags||[]).push(t); });
-    touch(session); save(); render(); toast("„"+x.name+"“ eingefügt");
-  }
-  function appendBlueprint(b){
-    (b.items||[]).forEach(i=> session.items.push({id:uid(), text:i.text, done:false, group:i.group||b.name, min:i.durationMin||""}));
-    (b.tags||[]).forEach(t=>{ if(!(session.tags||[]).includes(t)) (session.tags=session.tags||[]).push(t); });
-    if(!session.title) session.title = b.name;
-    touch(session); save(); render(); toast("Baustein „"+b.name+"“ angehängt ("+(b.items||[]).length+" Punkte)");
-  }
-  function newFromBlueprint(b){
-    closeSheet();
-    newSession("tennis", null, session.groupId||undefined);
-    const ns = state.sessions[state.sessions.length-1];
-    ns.title=b.name; ns.tags=[...(b.tags||[])];
-    (b.items||[]).forEach(i=> ns.items.push({id:uid(),text:i.text,done:false,group:i.group||"",min:i.durationMin||""}));
-    touch(ns); save(); render(); toast("Neue Einheit aus „"+b.name+"“");
-  }
-  function chipRow(host, opts, cur, onPick){
-    host.innerHTML="";
-    opts.forEach(([v,l])=>{ const b=document.createElement("button"); b.className=(v===cur?"on":""); b.textContent=l; b.onclick=()=>onPick(v); host.appendChild(b); });
-  }
-
-  async function draw(){
-    const host=$("#libList",sheetPanel); host.innerHTML='<div style="color:var(--faint);font-size:13px;padding:10px">lädt…</div>';
-    let data;
-    try{ data = await libLoad(false); }catch(e){ host.innerHTML='<div style="color:var(--faint);font-size:13px;padding:10px">Sammlung nicht erreichbar: '+esc(e.message||e)+'</div>'; return; }
-    $("#libSub",sheetPanel).innerHTML = "Stand: "+new Date(LIB.at).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+' · <a id="libRefresh" style="color:var(--accent)">aktualisieren</a>';
-    $("#libRefresh",sheetPanel).onclick=async()=>{ await refreshLib(); draw(); };
-    const arr = (view==="blueprints"?data.blueprints:data.exercises)||[];
-    chipRow($("#libTyp",sheetPanel), [["alle","alle Typen"],...Object.entries(LIB_TYPES)], typ, v=>{ typ=v; draw(); });
-    chipRow($("#libBall",sheetPanel), [["alle","alle Bälle"],...Object.entries(LIB_BALLS)], ball, v=>{ ball=v; draw(); });
-    const items = arr.filter(x=>{
-      if(typ!=="alle" && x.type!==typ) return false;
-      if(ball!=="alle" && !(x.balls||[]).includes(ball)) return false;
-      if(q){ const hay=[x.name,x.desc,x.note,(x.tags||[]).join(" "),(x.items||[]).map(i=>i.text).join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
-      return true;
-    }).sort((a,b)=>a.name.localeCompare(b.name));
-    host.innerHTML="";
-    if(!items.length){ host.innerHTML='<div style="color:var(--faint);font-size:13px;padding:10px">Nichts gefunden – Filter lockern oder Sammlung aktualisieren.</div>'; return; }
-    items.forEach(x=>{
-      const facet = [LIB_TYPES[x.type], (x.balls||[]).map(b=>LIB_BALLS[b]).join("/"), (x.aud||[]).join("/")].filter(Boolean).join(" · ");
-      const row=document.createElement("div"); row.className="pick";
-      if(view==="blueprints"){
-        row.innerHTML=`<div class="p-main"><div style="font-weight:600">${esc(x.name)}${x.durationMin?` · ${x.durationMin}′`:""}</div>
-          <div class="p-tags">${(x.items||[]).length} Schritte · ${esc(facet)}</div></div>`;
-        const b1=document.createElement("button"); b1.className="p-add"; b1.textContent="↳"; b1.title="Punkte anhängen"; b1.onclick=()=>appendBlueprint(x);
-        const b2=document.createElement("button"); b2.className="p-add"; b2.style.color="var(--faint)"; b2.textContent="＋"; b2.title="als neue Einheit"; b2.onclick=()=>newFromBlueprint(x);
-        row.append(b1,b2);
-      }else{
-        row.innerHTML=`<button class="p-add">＋</button><div class="p-main"><div style="font-weight:600">${esc(x.name)}${x.durationMin?` · ${x.durationMin}′`:""}${x.court&&x.court.els&&x.court.els.length?" 📐":""}</div>
-          ${x.desc?`<div class="p-tags">${esc(x.desc)}</div>`:""}
-          <div class="p-tags">${esc(facet)}${(x.tags||[]).length?" · "+x.tags.map(esc).join(", "):""}</div></div>`;
-        $(".p-add",row).onclick=()=>addExercise(x);
-      }
-      host.appendChild(row);
-    });
-  }
-  draw();
-}
-
-/* ---------- Events ---------- */
-$("#syncDot").onclick=cloudSheet;
-$("#areaSeg").onclick=e=>{ const b=e.target.closest("button"); if(!b)return;
-  state.settings.area=b.dataset.a; save(); render(); };
-$("#menuBtn").onclick=menuSheet;
-$("#composeAdd").onclick=newSessionSheet;
-$("#composeMic").onclick=()=>startRec(null);
-$("#search").oninput=()=>render();
-$("#searchClear").onclick=()=>{ $("#search").value=""; render(); };
-$("#composeInput").onkeydown=e=>{
-  if(e.key!=="Enter") return;
-  const txt=e.target.value.trim(); if(!txt) return;
-  const a = state.settings.area==="alle" ? "tennis" : state.settings.area;
-  const grp = activeGroup();
-  let pool = state.sessions.filter(x=>x.area===a && x.status!=="done");
-  if(grp!=="alle") pool = pool.filter(x=>x.groupId===grp);
-  let s = pool.sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0];
-  if(!s){ newSession(a,false, grp!=="alle"?grp:undefined); s=state.sessions[state.sessions.length-1]; }
-  s.items.push({id:uid(),text:txt,done:false,group:"Notizen"});
-  touch(s); openIds.add(s.id); save(); render();
-  e.target.value=""; toast("Zu „"+fmtDate(s.date)+"“ hinzugefügt");
-};
-document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !sheet.classList.contains("hidden")) closeSheet(); });
-
+/* ---------- Start ---------- */
+applyTheme();
 render();
 cloudInit();
 </script>
