@@ -700,10 +700,11 @@ function monatView(ym){
   const tennis=held.filter(x=>grp(x.groupId).area!=="kondition").length, kondi=held.length-tennis;
   page.append(h("div",{class:"stat"},h("span",{class:"stat-n"},String(held.length)),h("span",{class:"stat-l"},held.length===1?"Einheit":"Einheiten"),
     h("span",{class:"stat-s"},[tennis?tennis+" Tennis":null,kondi?kondi+" Kondition":null].filter(Boolean).join(" · "))));
-  const per={}; held.forEach(x=>{ per[x.groupId]=(per[x.groupId]||0)+1; });
+  const per={}; held.forEach(x=>{ const k=x.kind==="nachhol"?"nachhol":x.groupId; per[k]=(per[k]||0)+1; });
   page.append(h("div",{class:"h2"},"Nach Stunde"));
   const pg=h("div",{class:"group"}); page.append(pg);
   Object.entries(per).sort((a,b)=>b[1]-a[1]).forEach(([gid,n])=>{
+    if(gid==="nachhol"){ pg.append(h("div",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Nachholstunde")),h("span",{class:"meta"},n+"×"))); return; }
     const g=grp(gid);
     pg.append(h("button",{class:"row",onclick:()=>go("/s/"+gid)},h("span",{class:"grow"},h("div",{class:"name"},g.name),g.archived?h("div",{class:"sub"},"Archiviert"):null),h("span",{class:"meta"},n+"×"),h("span",{class:"ico chev",html:ico("chev",20)})));
   });
@@ -713,7 +714,7 @@ function monatView(ym){
     const g=grp(x.groupId), first=x.items.find(i=>String(i.text||"").trim());
     const pv=x.title||(first?first.text:"");
     vg.append(h("button",{class:"row",onclick:()=>go("/e/"+x.id)},
-      h("span",{class:"grow"},h("div",{class:"name"},fmtMid(x.date)),h("div",{class:"sub"},g.name+(pv?" · "+pv:""))),
+      h("span",{class:"grow"},h("div",{class:"name"},fmtMid(x.date)),h("div",{class:"sub"},(x.kind==="nachhol"?"Nachholstunde · ":"")+g.name+(pv?" · "+pv:""))),
       h("span",{class:"ico chev",html:ico("chev",20)})));
   });
   return root;
@@ -764,6 +765,7 @@ function stundeView(g){
       const tot=s.items.filter(i=>String(i.text||"").trim()).length;
       gr.append(h("button",{class:"row",onclick:()=>go("/e/"+s.id)},
         h("span",{class:"grow"},h("div",{class:"name"},fmtMid(s.date)),h("div",{class:"sub"},prev)),
+        s.kind==="nachhol"?h("span",{class:"pill hot"},"Nachhol"):null,
         tot?h("span",{class:"meta"},doneCount(s)+"/"+tot):null,
         h("span",{class:"ico chev",html:ico("chev",20)})));
     });
@@ -848,6 +850,7 @@ function einheitView(s){
   ti.addEventListener("input",()=>{s.title=ti.value;touch(s);saveSoft();});
   ti.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();ti.blur();} });
   page.append(ti);
+  if(s.kind==="nachhol") page.append(h("div",{style:"margin:-4px 0 12px"},h("span",{class:"pill hot"},"Nachholstunde")));
 
   /* ---- Checkliste ---- */
   const list=h("div",{class:"group checklist"}); page.append(list);
@@ -1071,6 +1074,9 @@ function einheitSheet(s){
   const g=grp(s.groupId);
   menuSheet(fmtMid(s.date),[
     s.area!=="kondition"?{label:"Aus Sammlung einfügen",sub:"Übungen oder ganze Bausteine",fn:()=>libPick(s)}:null,
+    {label:s.kind==="nachhol"?"Nachholstunde entfernen":"Als Nachholstunde markieren",sub:s.kind==="nachhol"?"Wieder als normale Einheit zählen":"Zählt in der Monatsübersicht extra",fn:()=>{
+      s.kind=s.kind==="nachhol"?undefined:"nachhol"; touch(s); save(); sheetOnClose=null; closeSheet(); render();
+    }},
     g?{label:"Anwesenheit",sub:(g.roster||[]).length?Object.keys(s.attend||{}).length+" von "+g.roster.length+" da":"Kader anlegen und abhaken",fn:()=>attendSheet(s,g)}:null,
     {label:"Einheit löschen",danger:true,fn:()=>{
       if(!confirm("Einheit vom "+fmtMid(s.date)+" mit allen Memos löschen?")) return;
