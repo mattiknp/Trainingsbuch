@@ -23,18 +23,19 @@
 <style>
 :root{
   --bg:#f3f4f5; --surface:#ffffff; --text:#14181c; --text2:#59636d; --line:#e3e6e9; --fill:#eceff1;
-  --accent:#17824a; --accent-fg:#ffffff; --danger:#c0332c;
+  --surface-hi:#e8ecef; --accent:#17824a; --accent-fg:#ffffff; --danger:#c0332c;
   --court:#356b45; --courtline:#eaf2ec;
   --panel:var(--surface); --panel2:var(--fill); --line2:var(--line); --faint:var(--text2); --dim:var(--text2);
   --r:14px; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme=light]){
-    --bg:#0d1012; --surface:#171b1f; --text:#eceff1; --text2:#98a2ab; --line:#272d33; --fill:#21272c;
+    --bg:#0d1012; --surface:#171b1f; --surface-hi:#242b31; --text:#eceff1; --text2:#98a2ab; --line:#272d33; --fill:#21272c;
     --accent:#3dbb70; --accent-fg:#04200f; --danger:#ef6a62; color-scheme:dark;
   }
 }
 :root[data-theme=dark]{
+  --surface-hi:#242b31;
   --bg:#0d1012; --surface:#171b1f; --text:#eceff1; --text2:#98a2ab; --line:#272d33; --fill:#21272c;
   --accent:#3dbb70; --accent-fg:#04200f; --danger:#ef6a62; color-scheme:dark;
 }
@@ -189,12 +190,10 @@ button.row:active{background:var(--fill)}
 
 .group.today{background:color-mix(in srgb,var(--accent) 13%,var(--surface))}
 .today-h{color:var(--accent)}
-.trow{padding:0 12px 0 0;gap:8px}
-.tmain{flex:1;min-width:0;text-align:left;padding:12px 0 12px 16px;min-height:66px;display:flex;flex-direction:column;justify-content:center}
-.tmain .name{font-size:19px}
-.tmain .sub{font-size:15px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pill-btn{background:var(--accent);color:var(--accent-fg);font-weight:600;border-radius:999px;padding:0 16px;height:38px;flex:none}
-.pill-btn:active{transform:scale(.96)}
+.trow{min-height:66px}
+.trow .name{font-size:19px}
+.trow .sub{white-space:nowrap}
+.group.alt{background:var(--surface-hi)}
 .tn-in{width:100%;padding:14px 16px;min-height:52px;line-height:1.45}
 .month-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 14px}
 .month-head .title{text-transform:capitalize}
@@ -636,17 +635,19 @@ function createStunde(name,area){
 function todayRow(g,iso){
   const s=sessionsOf(g.id).find(x=>x.date===iso);
   const tot=s?s.items.filter(i=>String(i.text||"").trim()).length:0;
-  const info=[g.time?g.time+" Uhr":null,g.area==="kondition"?"Kondition":null,s?(tot?tot+" Punkte geplant":"Einheit angelegt"):"Noch keine Einheit"].filter(Boolean).join(" · ");
-  return h("div",{class:"row trow"},
-    h("button",{class:"tmain",onclick:()=>go("/s/"+g.id)},h("div",{class:"name"},g.name),h("div",{class:"sub"},info)),
-    h("button",{class:"pill-btn",onclick:()=>s?go("/e/"+s.id):createEinheit(g)},s?"Öffnen":"Planen"));
+  const info=[g.time&&!parseSlot(g.name).time?g.time+" Uhr":null,g.area==="kondition"?"Kondition":null,s?(tot?tot+" Punkte geplant":"Einheit angelegt"):"Noch keine Einheit"].filter(Boolean).join(" · ");
+  return h("button",{class:"row trow",onclick:()=>go(s?"/e/"+s.id:"/s/"+g.id)},
+    h("span",{class:"grow"},h("div",{class:"name"},g.name),h("div",{class:"sub"},info)),
+    h("span",{class:"ico chev",html:ico("chev",20)}));
 }
 function homeView(){
   const root=h("div");
   root.append(topbar({right:[syncBtn(),moreBtn(homeMenu)]}));
   const page=h("main",{class:"page"}); root.append(page);
   page.append(h("h1",{class:"title"},"Stunden"));
-  const act=state.groups.filter(g=>!g.archived).sort(bySlot);
+  const isVert=g=>/vertretung/i.test(g.name);
+  const vert=state.groups.filter(g=>!g.archived&&isVert(g)).sort(bySlot);
+  const act=state.groups.filter(g=>!g.archived&&!isVert(g)).sort(bySlot);
   const wd=(new Date().getDay()+6)%7, iso=todayISO();
   const today=act.filter(g=>g.weekday===wd).sort((a,b)=>(a.time||"99").localeCompare(b.time||"99")||(a.order||0)-(b.order||0));
   const rest=act.filter(g=>!today.includes(g));
@@ -655,12 +656,13 @@ function homeView(){
     const tg=h("div",{class:"group today"}); today.forEach(g=>tg.append(todayRow(g,iso))); page.append(tg);
     page.append(h("div",{class:"h2"},"Weitere Stunden"));
   }
-  if(!act.length) page.append(h("p",{class:"hint"},"Lege deine erste Stunde an – Wochentag und Uhrzeit im Namen werden erkannt, z. B. „Di 17:30 Herren“."));
+  if(!act.length&&!vert.length) page.append(h("p",{class:"hint"},"Lege deine erste Stunde an – Wochentag und Uhrzeit im Namen werden erkannt, z. B. „Di 17:30 Herren“."));
   const gr=h("div",{class:"group"}); page.append(gr);
   rest.forEach(g=>gr.append(stundeRow(g)));
   let cr=null;
-  if(creating||!act.length){ cr=creatorRow(); gr.append(cr); }
+  if(creating||(!act.length&&!vert.length)){ cr=creatorRow(); gr.append(cr); }
   else gr.append(h("button",{class:"row accent",onclick:()=>{creating=true;focusCreator=true;render();}},h("span",{class:"ico",html:ico("plus",20)}),"Neue Stunde"));
+  if(vert.length){ const vg=h("div",{class:"group alt",style:"margin-top:14px"}); vert.forEach(g=>vg.append(stundeRow(g))); page.append(vg); }
   page.append(h("div",{class:"group",style:"margin-top:14px"},
     h("button",{class:"row",onclick:()=>go("/m/"+iso.slice(0,7))},
       h("span",{class:"ico dim",html:ico("cal",22)}),
@@ -1491,11 +1493,11 @@ async function syncNow(manual){
     let remoteObj=null;
     const rf=await ghGet(CFG.file());
     if(rf && rf.content){
-      try{ remoteObj=ensure(JSON.parse(b64dec(rf.content))); remoteSha=rf.sha; }catch(e){ remoteObj=null; }
-    } else if(rf){ remoteSha=rf.sha; }
+      try{ remoteObj=ensure(JSON.parse(b64dec(rf.content))); remoteSha=rf.sha; }catch(e){ throw new Error("Cloud-Datei nicht lesbar – nichts überschrieben"); }
+    } else if(rf){ throw new Error("Cloud-Datei konnte nicht gelesen werden – nichts überschrieben"); }
 
-    if(remoteObj && isEditing()){        // während der Fetch lief, hat der Nutzer angefangen zu tippen -> Merge verschieben
-      resyncPending=true;
+    if(remoteObj && !manual && isEditing()){   // Nutzer tippt: Merge UND Hochladen verschieben – niemals ungemergt über die Cloud schreiben
+      resyncPending=true; setDot("idle","Wartet …"); return;
     } else if(remoteObj){
       const before=snapIds(state);
       state = mergeState(state, remoteObj);
@@ -1512,6 +1514,8 @@ async function syncNow(manual){
     if(CFG.audio()){ try{ await syncAudio(state); }catch(e){ console.warn("audio-sync",e); } }
     save._silent=true; save(); save._silent=false;
 
+    const cnt=o=>(o.groups||[]).length+(o.sessions||[]).length+(o.pins||[]).length;
+    if(remoteObj && cnt(remoteObj)>0 && cnt(state)===0) throw new Error("Abbruch: lokal leer, Cloud nicht – nichts überschrieben");
     const outStr = JSON.stringify(stripForCloud(state));
     const remoteStr = remoteObj ? JSON.stringify(stripForCloud(remoteObj)) : null;
     if(outStr !== remoteStr){
@@ -1522,7 +1526,8 @@ async function syncNow(manual){
         if(e.conflict){
           const rf2=await ghGet(CFG.file());
           const remote2=rf2&&rf2.content?ensure(JSON.parse(b64dec(rf2.content))):null;
-          if(remote2 && !isEditing()){ state=mergeState(state,remote2); structuralChange=true; save._silent=true;save();save._silent=false; }
+          if(remote2 && !manual && isEditing()){ resyncPending=true; setDot("idle","Wartet …"); return; }
+          if(remote2){ state=mergeState(state,remote2); structuralChange=true; save._silent=true;save();save._silent=false; }
           const res2=await ghPut(CFG.file(), b64enc(JSON.stringify(stripForCloud(state))), rf2&&rf2.sha, "trainingsbuch merge "+new Date().toISOString());
           remoteSha=res2.content.sha;
         } else throw e;
