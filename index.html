@@ -1568,7 +1568,7 @@ async function ghDel(path,sha,msg){
 }
 
 /* ---- Merge ---- */
-const TOMB_TTL = 3*864e5;   // Löschungen wirken nur 3 Tage – danach werden sie ignoriert (verhindert „Geister-Löschungen“ zwischen Geräten)
+const TOMB_TTL = 60*864e5;  // Löschungen reisen 60 Tage mit, damit alte Geräte oder Backups Gelöschtes nicht zurückbringen; neuer Bearbeitetes (updatedAt > Löschzeit) bleibt immer
 function tombActive(ts){ return ts && ts > Date.now()-TOMB_TTL; }
 function pruneTomb(t){
   const cut=Date.now()-TOMB_TTL;
