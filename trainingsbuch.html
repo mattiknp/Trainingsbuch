@@ -791,16 +791,17 @@ function monatView(ym){
   return root;
 }
 /* ---- Stundenliste als PDF (eigener kleiner PDF-Schreiber, kein Download fremder Bibliotheken) ---- */
-const BILL={ name:()=>localStorage.getItem("tb_bill_name")||"", iban:()=>localStorage.getItem("tb_bill_iban")||"" };
+/* Name und IBAN liegen im (privaten) Cloud-Stand, damit sie auf allen Geräten da sind – nie im öffentlichen Code */
+const BILL={ name:()=>(state.profile&&state.profile.name)||localStorage.getItem("tb_bill_name")||"", iban:()=>(state.profile&&state.profile.iban)||localStorage.getItem("tb_bill_iban")||"" };
 function billingSheet(after){
   openSheet(`<div class="sheet-title">Abrechnung</div>
-    <div class="sheet-note">Steht unten auf der Stundenliste. Bleibt nur auf diesem Gerät gespeichert.</div>
+    <div class="sheet-note">Steht unten auf der Stundenliste. Wird über deine private Cloud auf alle Geräte übertragen.</div>
     <span class="flabel">Name</span><input id="bName" class="field" autocomplete="name" autocapitalize="words" value="${esc(BILL.name())}">
     <span class="flabel">IBAN</span><input id="bIban" class="field" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(BILL.iban())}">
     <div class="sheet-grp"><button class="sheet-btn primary" id="bSave">${after?"Speichern und PDF erstellen":"Speichern"}</button></div>`);
   $("#bSave",sheetPanel).addEventListener("click",()=>{
-    localStorage.setItem("tb_bill_name",$("#bName",sheetPanel).value.trim());
-    localStorage.setItem("tb_bill_iban",$("#bIban",sheetPanel).value.trim().replace(/\s+/g," "));
+    state.profile={name:$("#bName",sheetPanel).value.trim(),iban:$("#bIban",sheetPanel).value.trim().replace(/\s+/g," "),updatedAt:Date.now()};
+    save();
     closeSheet(); if(after) after(); else toast("Gespeichert");
   });
 }
@@ -1612,6 +1613,7 @@ function mergeState(local, remote){
   return ensure({
     v:2,
     settings: local.settings,
+    profile: ((remote.profile&&remote.profile.updatedAt)||0)>((local.profile&&local.profile.updatedAt)||0)?remote.profile:local.profile,
     groups:   mergeList(local.groups, remote.groups, tomb.group),
     pins:     mergeList(local.pins, remote.pins, tomb.pin),
     drills:   mergeList(local.drills, remote.drills, tomb.drill),
