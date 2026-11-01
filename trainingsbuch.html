@@ -728,15 +728,18 @@ function sessTime(s){
   if(gs!=null) return {start:gs,end:gs+dur,dur,src:"stunde"};
   return {start:null,end:null,dur,src:"fehlt"};
 }
+/* Nachholstunde zählt an dem Tag, an dem sie eigentlich gewesen wäre (Standard: der letzte Stundentermin davor) */
+function prevOcc(g,iso){ if(!g||g.weekday==null||!iso) return null; const d=new Date(iso+"T00:00:00"); do{ d.setDate(d.getDate()-1); }while((d.getDay()+6)%7!==g.weekday); return isoOf(d); }
+const billDate=s=>s.kind==="nachhol"?(s.forDate||prevOcc(grp(s.groupId),s.date)||s.date):s.date;
 function billable(from,to){
-  const iso=todayISO(), end=to<iso?to:iso;
-  return state.sessions.filter(x=>x.date>=from&&x.date<=end&&!x.cancelled&&grp(x.groupId))
-    .sort((a,b)=>(a.date||"").localeCompare(b.date||"")||((sessTime(a).start??9999)-(sessTime(b).start??9999)));
+  const iso=todayISO();
+  return state.sessions.filter(x=>{ const g=grp(x.groupId); if(!g||g.noBill||x.cancelled||x.date>iso) return false; const b=billDate(x); return b>=from&&b<=to; })
+    .sort((a,b)=>billDate(a).localeCompare(billDate(b))||((sessTime(a).start??9999)-(sessTime(b).start??9999)));
 }
 function dayRows(from,to){
   const ses=billable(from,to), rows=[];
   for(let d=new Date(from+"T00:00:00"); isoOf(d)<=to; d.setDate(d.getDate()+1)){
-    const iso=isoOf(d), list=ses.filter(x=>x.date===iso), t=list.map(sessTime);
+    const iso=isoOf(d), list=ses.filter(x=>billDate(x)===iso), t=list.map(sessTime);
     const st=t.map(x=>x.start).filter(x=>x!=null), en=t.map(x=>x.end).filter(x=>x!=null);
     rows.push({iso,wd:WEEKDAYS[(d.getDay()+6)%7],start:st.length?Math.min(...st):null,end:en.length?Math.max(...en):null,
       hours:t.reduce((a,x)=>a+x.dur,0)/60,list,missing:t.some(x=>x.src==="fehlt")});
@@ -770,6 +773,8 @@ function monatView(ym){
   worked.forEach(r=>body.append(h("tr",{class:r.missing?"miss":""},h("td",{},dShort(r.iso)),h("td",{},r.wd),h("td",{},fmtT(r.start)||"–"),h("td",{},fmtT(r.end)||"–"),h("td",{},fmtH(r.hours)))));
   tb.append(body,h("tfoot",{},h("tr",{},h("td",{colspan:"4"},"Summe"),h("td",{},fmtH(total)))));
   page.append(h("div",{class:"group tl-wrap"},tb));
+  const nb={}; state.sessions.forEach(x=>{ const g=grp(x.groupId); if(g&&g.noBill&&!x.cancelled&&x.date>=from&&x.date<=to&&x.date<=iso) nb[g.name]=(nb[g.name]||0)+1; });
+  if(Object.keys(nb).length) page.append(h("p",{class:"hint",style:"margin-top:10px"},"Nicht abgerechnet: "+Object.entries(nb).map(([n,c])=>n+" ("+c+"×)").join(", ")));
   const per={}; ses.forEach(x=>{ const k=x.kind==="nachhol"?"nachhol":x.groupId; per[k]=(per[k]||0)+1; });
   page.append(h("div",{class:"h2"},"Nach Stunde"));
   const pg=h("div",{class:"group"}); page.append(pg);
@@ -784,7 +789,7 @@ function monatView(ym){
     const g=grp(x.groupId), t=sessTime(x);
     const when=t.start!=null?fmtT(t.start)+" bis "+fmtT(t.end):"Uhrzeit fehlt";
     vg.append(h("button",{class:"row",onclick:()=>go("/e/"+x.id)},
-      h("span",{class:"grow"},h("div",{class:"name"},fmtMid(x.date)),h("div",{class:"sub"+(t.src==="fehlt"?" warn-t":"")},when+" · "+(x.kind==="nachhol"?"Nachholstunde · ":"")+g.name)),
+      h("span",{class:"grow"},h("div",{class:"name"},fmtMid(x.date)),h("div",{class:"sub"+(t.src==="fehlt"?" warn-t":"")},when+" · "+(x.kind==="nachhol"?"Nachholstunde für "+fmtMid(billDate(x))+" · ":"")+g.name)),
       h("span",{class:"meta"},fmtH(t.dur/60)+" h"),
       h("span",{class:"ico chev",html:ico("chev",20)})));
   });
@@ -910,7 +915,7 @@ function stundeView(g){
   page.append(nm);
   const sl=slotInfo(g);
   page.append(h("button",{class:"slotline",onclick:()=>stundeSheet(g)},
-    (sl?sl.text:"Termin festlegen")+(g.area==="kondition"?" · Kondition":"")));
+    (sl?sl.text:"Termin festlegen")+(g.area==="kondition"?" · Kondition":"")+(g.noBill?" · nicht abgerechnet":"")));
 
   const tn=teilnehmerPin(g), tnEl=teilnehmerEl(tn);
   page.append(h("div",{class:"h2",style:"margin-top:6px"},"Teilnehmer"));
@@ -958,6 +963,7 @@ function stundeSheet(g){
     <span class="flabel">Wochentag</span><div class="chips" id="sgDays">${days}</div>
     <span class="flabel">Uhrzeit</span><input id="sgTime" class="field" type="time" value="${esc(g.time||"")}">
     <span class="flabel">Dauer</span><div class="chips" id="sgDur">${[[45,"45 Min"],[60,"1 Std"],[90,"1,5 Std"],[120,"2 Std"]].map(([v,l])=>`<button class="chip${(g.durMin||60)===v?" on":""}" data-v="${v}">${l}</button>`).join("")}</div>
+    <label class="switchrow" style="margin-top:16px"><span>In der Stundenliste abrechnen</span><input type="checkbox" id="sgBill" ${g.noBill?"":"checked"}></label>
     <div class="group" style="margin-top:22px" id="sgAct"></div>`,()=>render());
   const upd=()=>{ g.slotParsed=true; touch(g); save(); };
   $$("#sgArea button",sheetPanel).forEach(b=>b.addEventListener("click",()=>{
@@ -968,6 +974,7 @@ function stundeSheet(g){
     $$("#sgDays .chip",sheetPanel).forEach(x=>x.classList.toggle("on",+x.dataset.d===g.weekday)); upd();
   }));
   $("#sgTime",sheetPanel).addEventListener("change",e=>{ g.time=e.target.value||undefined; upd(); });
+  $("#sgBill",sheetPanel).addEventListener("change",e=>{ g.noBill=e.target.checked?undefined:true; upd(); });
   $$("#sgDur .chip",sheetPanel).forEach(b=>b.addEventListener("click",()=>{
     g.durMin=+b.dataset.v; $$("#sgDur .chip",sheetPanel).forEach(x=>x.classList.toggle("on",x===b)); upd();
   }));
@@ -1025,8 +1032,13 @@ function einheitView(s){
   ti.addEventListener("input",()=>{s.title=ti.value;touch(s);saveSoft();});
   ti.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();ti.blur();} });
   page.append(ti);
-  if(s.kind==="nachhol"||s.cancelled) page.append(h("div",{style:"margin:-4px 0 12px;display:flex;gap:6px"},
-    s.kind==="nachhol"?h("span",{class:"pill hot"},"Nachholstunde"):null, s.cancelled?h("span",{class:"pill"},"Ausgefallen, wird nicht abgerechnet"):null));
+  if(s.kind==="nachhol"){
+    const fl=h("span",{},"Nachholstunde für "+fmtMid(billDate(s)));
+    const fi=h("input",{type:"date",class:"date-hit",value:billDate(s),"aria-label":"Eigentlicher Termin"});
+    fi.addEventListener("change",()=>{ if(!fi.value) return; s.forDate=fi.value; touch(s); save(); fl.textContent="Nachholstunde für "+fmtMid(s.forDate); });
+    page.append(h("div",{style:"margin:-4px 0 12px"},h("label",{class:"pill hot",style:"position:relative;display:inline-flex;gap:6px;align-items:center"},fl,h("span",{class:"ico",html:ico("down",14,2)}),fi)));
+  }
+  if(s.cancelled) page.append(h("div",{style:"margin:-4px 0 12px"},h("span",{class:"pill"},"Ausgefallen, wird nicht abgerechnet")));
 
   /* ---- Checkliste ---- */
   const list=h("div",{class:"group checklist"}); page.append(list);
@@ -1250,8 +1262,9 @@ function einheitSheet(s){
   const g=grp(s.groupId);
   menuSheet(fmtMid(s.date),[
     s.area!=="kondition"?{label:"Aus Sammlung einfügen",sub:"Übungen oder ganze Bausteine",fn:()=>libPick(s)}:null,
-    {label:s.kind==="nachhol"?"Nachholstunde entfernen":"Als Nachholstunde markieren",sub:s.kind==="nachhol"?"Wieder als normale Einheit zählen":"Zählt in der Monatsübersicht extra",fn:()=>{
-      s.kind=s.kind==="nachhol"?undefined:"nachhol"; touch(s); save(); sheetOnClose=null; closeSheet(); render();
+    {label:s.kind==="nachhol"?"Nachholstunde entfernen":"Als Nachholstunde markieren",sub:s.kind==="nachhol"?"Wieder als normale Einheit zählen":"Wird am eigentlichen Termin abgerechnet",fn:()=>{
+      if(s.kind==="nachhol"){ s.kind=undefined; delete s.forDate; } else { s.kind="nachhol"; const f=prevOcc(g,s.date); if(f) s.forDate=f; }
+      touch(s); save(); sheetOnClose=null; closeSheet(); render();
     }},
     {label:s.cancelled?"Doch stattgefunden":"Ausgefallen",sub:s.cancelled?"Wieder in der Stundenliste zählen":"Nicht in der Stundenliste abrechnen",fn:()=>{
       s.cancelled=s.cancelled?undefined:true; touch(s); save(); sheetOnClose=null; closeSheet(); render();
