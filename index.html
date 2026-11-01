@@ -203,6 +203,15 @@ button.row:active{background:var(--fill)}
 .stat-n{font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1}
 .stat-l{font-size:19px;font-weight:600}
 .stat-s{flex-basis:100%;color:var(--text2);font-size:15px;margin-top:2px}
+.warn,.warn-t{color:#c98a0b}
+.warn{font-size:15px;margin:12px 4px 0}
+.tl-wrap{padding:6px 8px}
+.tlist{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
+.tlist th{font-size:12px;font-weight:600;color:var(--text2);text-align:left;padding:8px 8px 6px;text-transform:uppercase;letter-spacing:.03em}
+.tlist td{padding:9px 8px;border-top:1px solid var(--line)}
+.tlist th:last-child,.tlist td:last-child{text-align:right}
+.tlist tr.miss td{color:#c98a0b}
+.tlist tfoot td{font-weight:700;border-top:1.5px solid var(--text2)}
 /* zielzonen-skizze */
 .court{width:100%;aspect-ratio:260/120;height:auto;display:block;border-radius:10px;background:#10301d;touch-action:none}
 .court-thumb{width:150px;aspect-ratio:260/120;height:auto;border-radius:8px;margin:6px 0 2px;background:#10301d;display:block;cursor:pointer}
@@ -289,6 +298,7 @@ const IC={
   dn:'<path d="M12 5v14M6 13l6 6 6-6"/>',
   indent:'<path d="M4 6h16M12 11h8M12 16h8M4 9.5L7.5 12 4 14.5"/>',
   outdent:'<path d="M4 6h16M12 11h8M12 16h8M7.5 9.5L4 12l3.5 2.5"/>',
+  dl:'<path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/>',
   cal:'<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
   court:'<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M12 6v12M3 12h4.5M16.5 12H21"/>'
 };
@@ -664,9 +674,9 @@ function homeView(){
   else gr.append(h("button",{class:"row accent",onclick:()=>{creating=true;focusCreator=true;render();}},h("span",{class:"ico",html:ico("plus",20)}),"Neue Stunde"));
   if(vert.length){ const vg=h("div",{class:"group alt",style:"margin-top:14px"}); vert.forEach(g=>vg.append(stundeRow(g))); page.append(vg); }
   page.append(h("div",{class:"group",style:"margin-top:14px"},
-    h("button",{class:"row",onclick:()=>go("/m/"+iso.slice(0,7))},
+    h("button",{class:"row",onclick:()=>go("/m/"+currentPeriod())},
       h("span",{class:"ico dim",html:ico("cal",22)}),
-      h("span",{class:"grow"},h("div",{class:"name"},"Monatsübersicht"),h("div",{class:"sub"},"Was du diesen Monat gemacht hast")),
+      h("span",{class:"grow"},h("div",{class:"name"},"Monatsübersicht"),h("div",{class:"sub"},"Stundenliste vom 16. bis 15. als PDF")),
       h("span",{class:"ico chev",html:ico("chev",20)}))));
   const arch=state.groups.filter(g=>g.archived).sort(bySlot);
   if(arch.length){
@@ -682,27 +692,85 @@ function homeView(){
   };
   return root;
 }
-/* ---------- Monatsübersicht ---------- */
+/* ---------- Monatsübersicht = Stundenliste (Abrechnung 16. bis 15.) ---------- */
 const hasContent=s=>s.items.some(i=>String(i.text||"").trim())||s.memos.length||(s.reflection||"").trim()||(s.note||"").trim();
 function shiftMonth(ym,d){ const [y,m]=ym.split("-").map(Number); const x=new Date(y,m-1+d,1); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0"); }
+const pad2=n=>String(n).padStart(2,"0");
+const isoOf=d=>d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
+const toMin=t=>{ const m=/^(\d{1,2}):(\d{2})$/.exec(t||""); return m?(+m[1])*60+(+m[2]):null; };
+const fromMin=n=>pad2(Math.floor(n/60))+":"+pad2(n%60);
+const fmtT=n=>n==null?"":Math.floor(n/60)+":"+pad2(n%60);
+const fmtH=h=>String(+h.toFixed(2)).replace(".",",");
+/* Zeitraum heißt nach dem Endmonat: „November“ = 16.10. bis 15.11. */
+function periodOf(ym){ const [y,m]=ym.split("-").map(Number); return {from:isoOf(new Date(y,m-2,16)),to:isoOf(new Date(y,m-1,15))}; }
+function currentPeriod(){ const d=new Date(); const x=new Date(d.getFullYear(),d.getMonth()+(d.getDate()>=16?1:0),1); return x.getFullYear()+"-"+pad2(x.getMonth()+1); }
+/* Uhrzeit einer Einheit: selbst eingetragen > aus dem Fokus-Text („16-17 Uhr“, „2 Std“) > aus der Stunde */
+function titleTimes(t){
+  t=String(t||"");
+  const r=/(\d{1,2})(?:[:.](\d{2}))?\s*(?:-|–|bis)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(uhr\b|h\b)?/i.exec(t);
+  if(r&&(r[5]||r[2]||r[4])){ const a=(+r[1])*60+(+(r[2]||0)), b=(+r[3])*60+(+(r[4]||0)); if(+r[1]>=6&&+r[3]<=23&&b>a) return {start:a,end:b}; }
+  const out={};
+  const d=/(\d+(?:[.,]\d+)?)\s*(?:std\b|stunden\b|h\b)/i.exec(t);
+  if(d){ const v=Math.round(parseFloat(d[1].replace(",","."))*60); if(v>0&&v<=600) out.dur=v; }
+  const one=/(?:^|[^\d.])(\d{1,2}):(\d{2})(?!\d)/.exec(t)||/(?:^|[^\d.])(\d{1,2})\s*uhr\b/i.exec(t);   // „16:00 Charlotte“, „14 Uhr“
+  if(one&&+one[1]>=6&&+one[1]<=23&&+(one[2]||0)<60) out.start=(+one[1])*60+(+(one[2]||0));
+  return (out.start!=null||out.dur)?out:null;
+}
+function sessTime(s){
+  const g=grp(s.groupId);
+  const a=toMin(s.start), b=toMin(s.end);
+  if(a!=null&&b!=null&&b>a) return {start:a,end:b,dur:b-a,src:"manuell"};
+  const tt=titleTimes(s.title);
+  if(tt&&tt.end!=null) return {start:tt.start,end:tt.end,dur:tt.end-tt.start,src:"titel"};
+  const dur=(tt&&tt.dur)||(g&&g.durMin)||60;
+  if(tt&&tt.start!=null) return {start:tt.start,end:tt.start+dur,dur,src:"titel"};
+  const gs=g?toMin(g.time||parseSlot(g.name).time):null;
+  if(gs!=null) return {start:gs,end:gs+dur,dur,src:"stunde"};
+  return {start:null,end:null,dur,src:"fehlt"};
+}
+function billable(from,to){
+  const iso=todayISO(), end=to<iso?to:iso;
+  return state.sessions.filter(x=>x.date>=from&&x.date<=end&&!x.cancelled&&grp(x.groupId))
+    .sort((a,b)=>(a.date||"").localeCompare(b.date||"")||((sessTime(a).start??9999)-(sessTime(b).start??9999)));
+}
+function dayRows(from,to){
+  const ses=billable(from,to), rows=[];
+  for(let d=new Date(from+"T00:00:00"); isoOf(d)<=to; d.setDate(d.getDate()+1)){
+    const iso=isoOf(d), list=ses.filter(x=>x.date===iso), t=list.map(sessTime);
+    const st=t.map(x=>x.start).filter(x=>x!=null), en=t.map(x=>x.end).filter(x=>x!=null);
+    rows.push({iso,wd:WEEKDAYS[(d.getDay()+6)%7],start:st.length?Math.min(...st):null,end:en.length?Math.max(...en):null,
+      hours:t.reduce((a,x)=>a+x.dur,0)/60,list,missing:t.some(x=>x.src==="fehlt")});
+  }
+  return rows;
+}
+const periodName=ym=>new Date(ym+"-01T00:00:00").toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+const dShort=iso=>iso.slice(8,10)+"."+iso.slice(5,7)+"."+iso.slice(2,4);
 function monatView(ym){
   const root=h("div");
   root.append(topbar({back:{label:"Stunden",href:"/"}}));
   const page=h("main",{class:"page"}); root.append(page);
-  const cur=todayISO().slice(0,7);
-  const label=new Date(ym+"-01T00:00:00").toLocaleDateString("de-DE",{month:"long",year:"numeric"});
-  const prev=h("button",{class:"icon-btn","aria-label":"Voriger Monat",html:ico("back",22,2),onclick:()=>go("/m/"+shiftMonth(ym,-1))});
-  const next=h("button",{class:"icon-btn","aria-label":"Nächster Monat",html:ico("chev",22,2),onclick:()=>go("/m/"+shiftMonth(ym,1))});
+  const cur=currentPeriod(), {from,to}=periodOf(ym), iso=todayISO();
+  const prev=h("button",{class:"icon-btn","aria-label":"Voriger Zeitraum",html:ico("back",22,2),onclick:()=>go("/m/"+shiftMonth(ym,-1))});
+  const next=h("button",{class:"icon-btn","aria-label":"Nächster Zeitraum",html:ico("chev",22,2),onclick:()=>go("/m/"+shiftMonth(ym,1))});
   if(ym>=cur){ next.disabled=true; next.style.opacity=".3"; }
-  page.append(h("div",{class:"month-head"},h("h1",{class:"title",style:"margin:0"},label),h("div",{class:"month-nav"},prev,next)));
-  const iso=todayISO();
-  const held=state.sessions.filter(x=>(x.date||"").startsWith(ym)&&x.date<=iso&&grp(x.groupId)&&hasContent(x))
-    .sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||0)-(a.createdAt||0));
-  if(!held.length){ page.append(h("p",{class:"hint"},"In diesem Monat gibt es noch keine Einheit mit Inhalt.")); return root; }
-  const tennis=held.filter(x=>grp(x.groupId).area!=="kondition").length, kondi=held.length-tennis;
-  page.append(h("div",{class:"stat"},h("span",{class:"stat-n"},String(held.length)),h("span",{class:"stat-l"},held.length===1?"Einheit":"Einheiten"),
-    h("span",{class:"stat-s"},[tennis?tennis+" Tennis":null,kondi?kondi+" Kondition":null].filter(Boolean).join(" · "))));
-  const per={}; held.forEach(x=>{ const k=x.kind==="nachhol"?"nachhol":x.groupId; per[k]=(per[k]||0)+1; });
+  page.append(h("div",{class:"month-head"},h("h1",{class:"title",style:"margin:0"},periodName(ym)),h("div",{class:"month-nav"},prev,next)));
+  page.append(h("p",{class:"hint",style:"margin-top:-8px"},dShort(from).slice(0,6)+" bis "+dShort(to)+(to>iso?" · läuft noch, Stand heute":"")));
+  const rows=dayRows(from,to), worked=rows.filter(r=>r.hours>0);
+  const total=rows.reduce((a,r)=>a+r.hours,0), ses=billable(from,to);
+  page.append(h("div",{class:"stat"},h("span",{class:"stat-n"},fmtH(total)),h("span",{class:"stat-l"},total===1?"Stunde":"Stunden"),
+    h("span",{class:"stat-s"},ses.length+(ses.length===1?" Einheit":" Einheiten")+" an "+worked.length+(worked.length===1?" Tag":" Tagen"))));
+  page.append(h("button",{class:"btn primary",style:"margin:16px 0 4px",onclick:()=>exportStundenliste(ym)},h("span",{class:"ico",html:ico("dl",20,2)}),"Stundenliste als PDF"));
+  if(!worked.length){ page.append(h("p",{class:"hint",style:"margin-top:14px"},"In diesem Zeitraum gibt es noch keine Einheit.")); return root; }
+  const miss=ses.filter(x=>sessTime(x).src==="fehlt");
+  if(miss.length) page.append(h("p",{class:"warn"},"Bei "+miss.length+(miss.length===1?" Einheit":" Einheiten")+" fehlt die Uhrzeit. Unten antippen und eintragen."));
+  page.append(h("div",{class:"h2"},"Stundenliste"));
+  const tb=h("table",{class:"tlist"});
+  tb.append(h("thead",{},h("tr",{},h("th",{},"Datum"),h("th",{},"Tag"),h("th",{},"Anfang"),h("th",{},"Ende"),h("th",{},"Std."))));
+  const body=h("tbody");
+  worked.forEach(r=>body.append(h("tr",{class:r.missing?"miss":""},h("td",{},dShort(r.iso)),h("td",{},r.wd),h("td",{},fmtT(r.start)||"–"),h("td",{},fmtT(r.end)||"–"),h("td",{},fmtH(r.hours)))));
+  tb.append(body,h("tfoot",{},h("tr",{},h("td",{colspan:"4"},"Summe"),h("td",{},fmtH(total)))));
+  page.append(h("div",{class:"group tl-wrap"},tb));
+  const per={}; ses.forEach(x=>{ const k=x.kind==="nachhol"?"nachhol":x.groupId; per[k]=(per[k]||0)+1; });
   page.append(h("div",{class:"h2"},"Nach Stunde"));
   const pg=h("div",{class:"group"}); page.append(pg);
   Object.entries(per).sort((a,b)=>b[1]-a[1]).forEach(([gid,n])=>{
@@ -710,22 +778,119 @@ function monatView(ym){
     const g=grp(gid);
     pg.append(h("button",{class:"row",onclick:()=>go("/s/"+gid)},h("span",{class:"grow"},h("div",{class:"name"},g.name),g.archived?h("div",{class:"sub"},"Archiviert"):null),h("span",{class:"meta"},n+"×"),h("span",{class:"ico chev",html:ico("chev",20)})));
   });
-  page.append(h("div",{class:"h2"},"Verlauf"));
+  page.append(h("div",{class:"h2"},"Einheiten"));
   const vg=h("div",{class:"group"}); page.append(vg);
-  held.forEach(x=>{
-    const g=grp(x.groupId), first=x.items.find(i=>String(i.text||"").trim());
-    const pv=x.title||(first?first.text:"");
+  ses.slice().reverse().forEach(x=>{
+    const g=grp(x.groupId), t=sessTime(x);
+    const when=t.start!=null?fmtT(t.start)+" bis "+fmtT(t.end):"Uhrzeit fehlt";
     vg.append(h("button",{class:"row",onclick:()=>go("/e/"+x.id)},
-      h("span",{class:"grow"},h("div",{class:"name"},fmtMid(x.date)),h("div",{class:"sub"},(x.kind==="nachhol"?"Nachholstunde · ":"")+g.name+(pv?" · "+pv:""))),
+      h("span",{class:"grow"},h("div",{class:"name"},fmtMid(x.date)),h("div",{class:"sub"+(t.src==="fehlt"?" warn-t":"")},when+" · "+(x.kind==="nachhol"?"Nachholstunde · ":"")+g.name)),
+      h("span",{class:"meta"},fmtH(t.dur/60)+" h"),
       h("span",{class:"ico chev",html:ico("chev",20)})));
   });
   return root;
+}
+/* ---- Stundenliste als PDF (eigener kleiner PDF-Schreiber, kein Download fremder Bibliotheken) ---- */
+const BILL={ name:()=>localStorage.getItem("tb_bill_name")||"", iban:()=>localStorage.getItem("tb_bill_iban")||"" };
+function billingSheet(after){
+  openSheet(`<div class="sheet-title">Abrechnung</div>
+    <div class="sheet-note">Steht unten auf der Stundenliste. Bleibt nur auf diesem Gerät gespeichert.</div>
+    <span class="flabel">Name</span><input id="bName" class="field" autocomplete="name" autocapitalize="words" value="${esc(BILL.name())}">
+    <span class="flabel">IBAN</span><input id="bIban" class="field" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(BILL.iban())}">
+    <div class="sheet-grp"><button class="sheet-btn primary" id="bSave">${after?"Speichern und PDF erstellen":"Speichern"}</button></div>`);
+  $("#bSave",sheetPanel).addEventListener("click",()=>{
+    localStorage.setItem("tb_bill_name",$("#bName",sheetPanel).value.trim());
+    localStorage.setItem("tb_bill_iban",$("#bIban",sheetPanel).value.trim().replace(/\s+/g," "));
+    closeSheet(); if(after) after(); else toast("Gespeichert");
+  });
+}
+function exportStundenliste(ym){
+  if(!BILL.name()){ billingSheet(()=>exportStundenliste(ym)); return; }
+  const {from,to}=periodOf(ym), rows=dayRows(from,to);
+  const name="Stundenliste "+periodName(ym)+".pdf";
+  const blob=stundenlistePDF(rows,rows.reduce((a,r)=>a+r.hours,0),BILL.name(),BILL.iban());
+  const file=new File([blob],name,{type:"application/pdf"});
+  if(matchMedia("(pointer:coarse)").matches&&navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:name}).catch(e=>{ if(e&&e.name!=="AbortError") downloadBlob(blob,name); });
+  } else downloadBlob(blob,name);
+}
+const HELV=(()=>{ const r={}, b={};
+  const put=(o,str)=>str.replace(/(\D)(\d+)/g,(_,c,w)=>{o[c]=+w;return "";});
+  put(r,"A667B667C722D722E667F611G778H722I278J500K667L556M833N722O778P667Q778R722S667T611U722V667W944X667Y667Z611a556b556c500d556e556f278g556h556i222j222k500l222m833n556o556p556q556r333s500t278u556v500w722x500y500z500ä556ö556ü556ß611Ä667Ö778Ü722 278.278:278,278-333/278");
+  put(b,"A722B722C722D722E667F611G778H722I278J556K722L611M833N722O778P667Q778R722S667T611U722V667W944X667Y667Z611 278");
+  for(const c of "0123456789"){ r[c]=556; b[c]=556; }
+  return {r,b}; })();
+function stundenlistePDF(rows,total,name,iban){
+  const ops=[];
+  const tw=(t,size,bold)=>[...t].reduce((a,c)=>a+((bold?HELV.b:HELV.r)[c]||556),0)*size/1000;
+  const enc=t=>[...String(t)].map(c=>{ const k=c.charCodeAt(0); if(c==="–"||c==="—") return "-"; if(k>255) return "?"; return (c==="("||c===")"||c==="\\")?"\\"+c:c; }).join("");
+  const txt=(t,x,y,size,bold)=>ops.push(`BT /${bold?"F2":"F1"} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${enc(t)}) Tj ET`);
+  const ctr=(t,x0,x1,y,size,bold)=>txt(t,(x0+x1)/2-tw(t,size,bold)/2,y,size,bold);
+  const ln=(x0,y0,x1,y1,w)=>ops.push(`${w} w ${x0.toFixed(2)} ${y0.toFixed(2)} m ${x1.toFixed(2)} ${y1.toFixed(2)} l S`);
+  const X=[80,155,225,295,365,425], XS=480, RH=12.6, FS=9;
+  let y=842-80;                                     // Oberkante der Tabelle
+  const top=y, n=rows.length+1;                      // Kopf + Tage
+  ctr("DATUM",X[0],X[1],y-RH+3.4,FS,true); ctr("TAG",X[1],X[2],y-RH+3.4,FS,true); ctr("ANFANG",X[2],X[3],y-RH+3.4,FS,true);
+  ctr("ENDE",X[3],X[4],y-RH+3.4,FS,true); ctr("STUNDEN",X[4],X[5],y-RH+3.4,FS,true);
+  y-=RH;
+  rows.forEach(r=>{
+    const t0=r.start!=null?fmtT(r.start):(r.hours?"":"0:00"), t1=r.end!=null?fmtT(r.end):(r.hours?"":"0:00");
+    ctr(dShort(r.iso),X[0],X[1],y-RH+3.4,FS); ctr(r.wd,X[1],X[2],y-RH+3.4,FS); ctr(t0,X[2],X[3],y-RH+3.4,FS);
+    ctr(t1,X[3],X[4],y-RH+3.4,FS); ctr(fmtH(r.hours),X[4],X[5],y-RH+3.4,FS);
+    y-=RH;
+  });
+  const bot=y;
+  for(let i=0;i<=n;i++){ const yy=top-i*RH; ln(X[0],yy,X[5],yy,i===0||i===n?1:.5); }
+  X.forEach((x,i)=>ln(x,top,x,bot,i===0||i===X.length-1?1:.5));
+  /* Fußzeile: Name | Summe | Stunden */
+  const fy=bot-RH;
+  ctr(name,X[0],X[3],fy+3.4,FS); ctr("Summe",X[3],X[4],fy+3.4,FS); ctr(fmtH(total),X[4],X[5],fy+3.2,10.5);
+  txt("Stunden",X[5]+4,fy+3.4,FS);
+  ln(X[0],bot,X[0],fy,.5); ln(X[3],bot,X[3],fy,.5); ln(X[4],bot,X[4],fy,1); ln(X[5],bot,X[5],fy,1); ln(XS,bot,XS,fy,1);
+  ln(X[3],fy,X[5],fy,.5); ln(X[4],fy,X[5],fy,1); ln(X[5],bot,XS,bot,.5); ln(X[5],fy,XS,fy,1);
+  /* IBAN-Zeile */
+  const iy=fy-RH;
+  if(iban) txt("IBAN: "+iban,X[0]+2,iy+3.4,FS);
+  ln(X[0],fy,X[0],iy,.5); ln(X[0],iy,X[3],iy,.5); ln(X[3],fy,X[3],iy,.5);
+  const content=ops.join("\n");
+  const objs=["<< /Type /Catalog /Pages 2 0 R >>","<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    "<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream"];
+  let out="%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"; const off=[];
+  objs.forEach((o,i)=>{ off.push(out.length); out+=(i+1)+" 0 obj\n"+o+"\nendobj\n"; });
+  const xref=out.length;
+  out+="xref\n0 "+(objs.length+1)+"\n0000000000 65535 f \n"+off.map(o=>String(o).padStart(10,"0")+" 00000 n \n").join("")+
+    "trailer\n<< /Size "+(objs.length+1)+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";
+  return new Blob([Uint8Array.from(out,c=>c.charCodeAt(0)&255)],{type:"application/pdf"});
+}
+/* ---- Uhrzeit einer Einheit ---- */
+function timeSheet(s){
+  const t=sessTime(s);
+  const src={manuell:"Von dir eingetragen.",titel:"Automatisch aus dem Fokus-Text.",stunde:"Automatisch aus der Stunde.",fehlt:"Noch keine Uhrzeit bekannt."}[t.src];
+  openSheet(`<div class="sheet-title">Uhrzeit</div>
+    <div class="sheet-note">Für die Stundenliste. ${src}</div>
+    <span class="flabel">Anfang</span><input id="tmA" class="field" type="time" value="${t.start!=null?fromMin(t.start):""}">
+    <span class="flabel">Ende</span><input id="tmE" class="field" type="time" value="${t.end!=null?fromMin(t.end):""}">
+    <div class="sheet-grp"><button class="sheet-btn primary" id="tmS">Speichern</button>${t.src==="manuell"?'<button class="sheet-btn" id="tmR">Wieder automatisch</button>':""}</div>`,()=>render());
+  const A=$("#tmA",sheetPanel), E=$("#tmE",sheetPanel);
+  A.addEventListener("change",()=>{ const a=toMin(A.value); if(a!=null&&!E.value) E.value=fromMin(Math.min(a+t.dur,23*60+59)); });
+  $("#tmS",sheetPanel).addEventListener("click",()=>{
+    const a=toMin(A.value), b=toMin(E.value);
+    if(a==null||b==null){ toast("Bitte Anfang und Ende eintragen"); return; }
+    if(b<=a){ toast("Ende muss nach dem Anfang liegen"); return; }
+    s.start=fromMin(a); s.end=fromMin(b); touch(s); save(); closeSheet();
+  });
+  const R=$("#tmR",sheetPanel);
+  if(R) R.addEventListener("click",()=>{ delete s.start; delete s.end; touch(s); save(); closeSheet(); });
 }
 function homeMenu(){
   const tm=state.settings.themeMode||"auto";
   menuSheet("Einstellungen",[
     {label:"Cloud-Sync",sub:CFG.on()?"Aktiv – Handy und Mac abgleichen":"Über GitHub einrichten",fn:cloudSheet},
     {label:"Transkription",sub:STT.key()?"Aktiv ("+(STT.prov()==="groq"?"Groq":"OpenAI")+")":"Sprachmemos automatisch in Text",fn:sttSheet},
+    {label:"Abrechnung",sub:BILL.name()||"Name und IBAN für die Stundenliste",fn:()=>billingSheet()},
     {label:"Erscheinungsbild",sub:"Tippen zum Wechseln",meta:{auto:"Automatisch",light:"Hell",dark:"Dunkel"}[tm],fn:cycleTheme},
     {label:"Backup sichern",sub:"Alles inkl. Sprachmemos als Datei",fn:exportJSON},
     {label:"Backup laden",fn:importJSON}
@@ -791,6 +956,7 @@ function stundeSheet(g){
     <div class="seg" id="sgArea"><button data-a="tennis" class="${g.area!=="kondition"?"on":""}">Tennis</button><button data-a="kondition" class="${g.area==="kondition"?"on":""}">Kondition</button></div>
     <span class="flabel">Wochentag</span><div class="chips" id="sgDays">${days}</div>
     <span class="flabel">Uhrzeit</span><input id="sgTime" class="field" type="time" value="${esc(g.time||"")}">
+    <span class="flabel">Dauer</span><div class="chips" id="sgDur">${[[45,"45 Min"],[60,"1 Std"],[90,"1,5 Std"],[120,"2 Std"]].map(([v,l])=>`<button class="chip${(g.durMin||60)===v?" on":""}" data-v="${v}">${l}</button>`).join("")}</div>
     <div class="group" style="margin-top:22px" id="sgAct"></div>`,()=>render());
   const upd=()=>{ g.slotParsed=true; touch(g); save(); };
   $$("#sgArea button",sheetPanel).forEach(b=>b.addEventListener("click",()=>{
@@ -801,6 +967,9 @@ function stundeSheet(g){
     $$("#sgDays .chip",sheetPanel).forEach(x=>x.classList.toggle("on",+x.dataset.d===g.weekday)); upd();
   }));
   $("#sgTime",sheetPanel).addEventListener("change",e=>{ g.time=e.target.value||undefined; upd(); });
+  $$("#sgDur .chip",sheetPanel).forEach(b=>b.addEventListener("click",()=>{
+    g.durMin=+b.dataset.v; $$("#sgDur .chip",sheetPanel).forEach(x=>x.classList.toggle("on",x===b)); upd();
+  }));
   const box=$("#sgAct",sheetPanel);
   const arch=h("button",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},g.archived?"Aus dem Archiv holen":"Archivieren"),h("div",{class:"sub"},g.archived?"Wieder in der Stundenliste anzeigen":"Ausblenden, z. B. nach der Saison")));
   arch.addEventListener("click",()=>{ g.archived=g.archived?undefined:true; touch(g); save(); sheetOnClose=null; closeSheet(); go("/"); });
@@ -848,11 +1017,15 @@ function einheitView(s){
   const dInp=h("input",{type:"date",class:"date-hit",value:s.date,"aria-label":"Datum ändern"});
   dInp.addEventListener("change",()=>{ if(!dInp.value) return; s.date=dInp.value; touch(s); save(); dLbl.textContent=fmtLong(s.date); });
   page.append(h("h1",{class:"title date-title"},dLbl,h("span",{class:"ico dim",html:ico("down",20)}),dInp));
+  const tm=sessTime(s);
+  page.append(h("button",{class:"slotline"+(tm.src==="fehlt"?" warn-t":""),onclick:()=>timeSheet(s)},
+    tm.start!=null?fmtT(tm.start)+" bis "+fmtT(tm.end)+" Uhr · "+fmtH(tm.dur/60)+" Std.":"Uhrzeit eintragen"));
   const ti=h("input",{class:"focus-in",placeholder:"Fokus (optional), z. B. Aufschlag und Return",autocomplete:"off",enterkeyhint:"done","aria-label":"Fokus der Einheit"}); ti.value=s.title||"";
   ti.addEventListener("input",()=>{s.title=ti.value;touch(s);saveSoft();});
   ti.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();ti.blur();} });
   page.append(ti);
-  if(s.kind==="nachhol") page.append(h("div",{style:"margin:-4px 0 12px"},h("span",{class:"pill hot"},"Nachholstunde")));
+  if(s.kind==="nachhol"||s.cancelled) page.append(h("div",{style:"margin:-4px 0 12px;display:flex;gap:6px"},
+    s.kind==="nachhol"?h("span",{class:"pill hot"},"Nachholstunde"):null, s.cancelled?h("span",{class:"pill"},"Ausgefallen, wird nicht abgerechnet"):null));
 
   /* ---- Checkliste ---- */
   const list=h("div",{class:"group checklist"}); page.append(list);
@@ -1078,6 +1251,9 @@ function einheitSheet(s){
     s.area!=="kondition"?{label:"Aus Sammlung einfügen",sub:"Übungen oder ganze Bausteine",fn:()=>libPick(s)}:null,
     {label:s.kind==="nachhol"?"Nachholstunde entfernen":"Als Nachholstunde markieren",sub:s.kind==="nachhol"?"Wieder als normale Einheit zählen":"Zählt in der Monatsübersicht extra",fn:()=>{
       s.kind=s.kind==="nachhol"?undefined:"nachhol"; touch(s); save(); sheetOnClose=null; closeSheet(); render();
+    }},
+    {label:s.cancelled?"Doch stattgefunden":"Ausgefallen",sub:s.cancelled?"Wieder in der Stundenliste zählen":"Nicht in der Stundenliste abrechnen",fn:()=>{
+      s.cancelled=s.cancelled?undefined:true; touch(s); save(); sheetOnClose=null; closeSheet(); render();
     }},
     g?{label:"Anwesenheit",sub:(g.roster||[]).length?Object.keys(s.attend||{}).length+" von "+g.roster.length+" da":"Kader anlegen und abhaken",fn:()=>attendSheet(s,g)}:null,
     {label:"Einheit löschen",danger:true,fn:()=>{
