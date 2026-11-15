@@ -167,6 +167,19 @@ button.row:active{background:var(--fill)}
 .memo .msum{margin-top:8px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,var(--surface));font-size:15px;line-height:1.45}
 .memo .msum b{display:block;font-size:12.5px;color:var(--accent);margin-bottom:2px;letter-spacing:.01em}
 .memo .mrow{display:flex;gap:18px;flex-wrap:wrap}
+/* ---- Stundenkonto ---- */
+.konto .row{min-height:54px}
+.konto .kval{flex:none;font-variant-numeric:tabular-nums;font-size:16px;color:var(--text2)}
+.konto .kval.b{font-weight:700;color:var(--text)}
+.konto .kval.ok{color:var(--accent)}
+.konto .kval.warn-t{color:#c98a0b}
+.konto .kres{background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.stepper{flex:none;display:flex;align-items:center;gap:2px;background:var(--fill);border-radius:10px;padding:2px}
+.stepper button{width:36px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.stepper button:active{background:var(--surface)}
+.stepper .sn{min-width:34px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.kin{flex:none;width:76px;text-align:right;background:var(--fill);border-radius:9px;padding:7px 10px;font-weight:700;font-variant-numeric:tabular-nums}
+.kunit{flex:none;color:var(--text2);font-size:15px;margin-left:-4px}
 .gap{height:10px}
 .thumbwrap{padding:0 14px 8px 48px}
 .area{width:100%;padding:14px 16px;min-height:96px;line-height:1.45}
@@ -343,6 +356,7 @@ const IC={
   cal:'<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
   court:'<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M12 6v12M3 12h4.5M16.5 12H21"/>',
   toplan:'<path d="M5 12h12M12 6l6 6-6 6"/>',
+  minus:'<path d="M5 12h14"/>',
   spark:'<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
 };
 const ico=(n,s=22,w=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
@@ -484,6 +498,10 @@ function ensure(s){
     x.items.forEach(i=>{ i.id||=uid(); i.indent=Math.max(0,Math.min(2,i.indent||0)); });
   });
   s.pins.forEach(p=>{ p.groupId=p.groupId||null; });
+  /* Stundenkonto: Montagstraining + ausgezahlte Stunden je Abrechnungszeitraum (wird mit synchronisiert) */
+  s.extra=Object.assign({updatedAt:0},s.extra||{});
+  s.extra.monday=Object.assign({on:true,durMin:60,inBalance:true,adj:{}},s.extra.monday||{});
+  s.extra.monday.adj||={}; s.extra.paid||={};
   return s;
 }
 let state=load();
@@ -806,6 +824,7 @@ function monatView(ym){
   page.append(h("div",{class:"stat"},h("span",{class:"stat-n"},fmtH(total)),h("span",{class:"stat-l"},total===1?"Stunde":"Stunden"),
     h("span",{class:"stat-s"},ses.length+(ses.length===1?" Einheit":" Einheiten")+" an "+worked.length+(worked.length===1?" Tag":" Tagen"))));
   page.append(h("button",{class:"btn primary",style:"margin:16px 0 4px",onclick:()=>exportStundenliste(ym)},h("span",{class:"ico",html:ico("dl",20,2)}),"Stundenliste als PDF"));
+  kontoBlock(page,ym,total);
   if(!worked.length){ page.append(h("p",{class:"hint",style:"margin-top:14px"},"In diesem Zeitraum gibt es noch keine Einheit.")); return root; }
   const miss=ses.filter(x=>sessTime(x).src==="fehlt");
   if(miss.length) page.append(h("p",{class:"warn"},"Bei "+miss.length+(miss.length===1?" Einheit":" Einheiten")+" fehlt die Uhrzeit. Unten antippen und eintragen."));
@@ -837,6 +856,67 @@ function monatView(ym){
       h("span",{class:"ico chev",html:ico("chev",20)})));
   });
   return root;
+}
+/* ---- Stundenkonto: Montagstraining mitzählen, Auszahlungen eintragen, Rest anzeigen ---- */
+const parseH=v=>{ const n=parseFloat(String(v||"").replace(",",".").replace(/[^\d.\-]/g,"")); return isFinite(n)?n:null; };
+function mondayAuto(ym){
+  const {from,to}=periodOf(ym), end=to<todayISO()?to:todayISO(); let n=0;
+  for(let d=new Date(from+"T00:00:00"); isoOf(d)<=end; d.setDate(d.getDate()+1)) if(d.getDay()===1) n++;
+  return n;
+}
+const mondayCount=ym=>Math.max(0,mondayAuto(ym)+(state.extra.monday.adj[ym]||0));
+const mondayHours=ym=>state.extra.monday.on?mondayCount(ym)*(state.extra.monday.durMin||60)/60:0;
+const periodTotal=ym=>{ const {from,to}=periodOf(ym); return dayRows(from,to).reduce((a,r)=>a+r.hours,0); };
+const periodSoll=ym=>periodTotal(ym)+(state.extra.monday.inBalance?mondayHours(ym):0);
+function kontoBlock(page,ym,total){
+  const ex=state.extra, mo=ex.monday;
+  const box=h("div"); page.append(box);
+  const touchX=()=>{ ex.updatedAt=Date.now(); save(); };
+  function draw(){
+    box.replaceChildren();
+    box.append(h("div",{class:"h2"},"Stundenkonto"));
+    const g=h("div",{class:"group konto"}); box.append(g);
+    g.append(h("div",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Stundenliste")),h("span",{class:"kval"},fmtH(total)+" Std.")));
+    if(mo.on){
+      const n=mondayCount(ym), hrs=mondayHours(ym);
+      const step=d=>{ const next=Math.max(0,n+d); mo.adj[ym]=next-mondayAuto(ym); if(!mo.adj[ym]) delete mo.adj[ym]; touchX(); draw(); };
+      g.append(h("div",{class:"row"},
+        h("button",{class:"grow",style:"text-align:left",onclick:mondaySheet},h("div",{class:"name"},"Montagstraining"),
+          h("div",{class:"sub"},fmtH(hrs)+" Std. · je "+fmtH((mo.durMin||60)/60)+" Std."+(mo.inBalance?"":" · nicht im Konto"))),
+        h("div",{class:"stepper"},
+          h("button",{"aria-label":"Ein Montagstraining weniger",onclick:()=>step(-1),html:ico("minus",18,2.2)}),
+          h("span",{class:"sn"},n+"×"),
+          h("button",{"aria-label":"Ein Montagstraining mehr",onclick:()=>step(1),html:ico("plus",18,2.2)}))));
+    }
+    const soll=periodSoll(ym);
+    if(mo.on&&mo.inBalance) g.append(h("div",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Gesamt")),h("span",{class:"kval b"},fmtH(soll)+" Std.")));
+    const inp=h("input",{class:"kin",inputmode:"decimal",enterkeyhint:"done",placeholder:"0","aria-label":"Ausgezahlte Stunden",autocomplete:"off",
+      value:ex.paid[ym]!=null?fmtH(ex.paid[ym]):""});
+    inp.addEventListener("change",()=>{ const v=parseH(inp.value); if(v==null||inp.value.trim()==="") delete ex.paid[ym]; else ex.paid[ym]=Math.round(v*100)/100; touchX(); draw(); });
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); inp.blur(); } });
+    g.append(h("label",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Ausgezahlt"),h("div",{class:"sub"},"Für diesen Zeitraum")),inp,h("span",{class:"kunit"},"Std.")));
+    const paid=ex.paid[ym], rest=soll-(paid||0);
+    g.append(h("div",{class:"row kres"},h("span",{class:"grow"},h("div",{class:"name"},rest<-0.004?"Zu viel ausgezahlt":"Fehlen noch")),
+      h("span",{class:"kval b "+(paid==null?"":rest>0.004?"warn-t":"ok")},fmtH(Math.abs(rest))+" Std.")));
+    /* Über alle Zeiträume seit der ersten eingetragenen Auszahlung */
+    const keys=Object.keys(ex.paid).sort();
+    if(keys.length&&keys[0]<ym){
+      let sum=0; for(let p=keys[0]; p<=ym; p=shiftMonth(p,1)) sum+=periodSoll(p)-(ex.paid[p]||0);
+      box.append(h("p",{class:"hint",style:"margin-top:10px"},"Insgesamt "+(sum<-0.004?"zu viel ausgezahlt":"offen")+" seit "+periodName(keys[0]).split(" ")[0]+": "+fmtH(Math.abs(sum))+" Std."));
+    }
+    if(!mo.on) box.append(h("button",{class:"linkbtn",style:"margin-top:6px",onclick:()=>{ mo.on=true; touchX(); draw(); }},"Montagstraining mitzählen"));
+  }
+  function mondaySheet(){
+    openSheet(`<div class="sheet-title">Montagstraining</div>
+      <div class="sheet-note">Zählt automatisch jeden Montag im Zeitraum (bis heute). Ausgefallene oder zusätzliche Termine mit − / + korrigieren. Die PDF-Stundenliste bleibt unverändert.</div>
+      <span class="flabel">Dauer pro Training</span><div class="chips" id="moDur">${[[60,"1 Std"],[90,"1,5 Std"],[120,"2 Std"],[150,"2,5 Std"],[180,"3 Std"]].map(([v,l])=>`<button class="chip${(mo.durMin||60)===v?" on":""}" data-v="${v}">${l}</button>`).join("")}</div>
+      <label class="switchrow" style="margin-top:16px"><span>Im Stundenkonto mitrechnen</span><input type="checkbox" id="moBal" ${mo.inBalance?"checked":""}></label>
+      <div class="group" style="margin-top:22px"><button class="row danger" id="moOff"><span class="grow"><div class="name">Nicht mehr mitzählen</div></span></button></div>`,()=>render());
+    $$("#moDur .chip",sheetPanel).forEach(b=>b.addEventListener("click",()=>{ mo.durMin=+b.dataset.v; $$("#moDur .chip",sheetPanel).forEach(x=>x.classList.toggle("on",x===b)); touchX(); }));
+    $("#moBal",sheetPanel).addEventListener("change",e=>{ mo.inBalance=e.target.checked; touchX(); });
+    $("#moOff",sheetPanel).addEventListener("click",()=>{ mo.on=false; touchX(); closeSheet(); });
+  }
+  draw();
 }
 /* ---- Stundenliste als PDF (eigener kleiner PDF-Schreiber, kein Download fremder Bibliotheken) ---- */
 /* Name und IBAN liegen im (privaten) Cloud-Stand, damit sie auf allen Geräten da sind – nie im öffentlichen Code */
@@ -1935,6 +2015,7 @@ function mergeState(local, remote){
     v:2,
     settings: local.settings,
     profile: ((remote.profile&&remote.profile.updatedAt)||0)>((local.profile&&local.profile.updatedAt)||0)?remote.profile:local.profile,
+    extra: ((remote.extra&&remote.extra.updatedAt)||0)>((local.extra&&local.extra.updatedAt)||0)?remote.extra:local.extra,
     groups:   mergeList(local.groups, remote.groups, tomb.group),
     pins:     mergeList(local.pins, remote.pins, tomb.pin),
     drills:   mergeList(local.drills, remote.drills, tomb.drill),
