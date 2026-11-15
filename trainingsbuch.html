@@ -155,6 +155,12 @@ button.row:active{background:var(--fill)}
 .idea .isrc .pl{color:var(--accent);font-weight:600}
 .idea .iact{flex:none;width:42px;height:50px;display:flex;align-items:center;justify-content:center;color:var(--text2);border-radius:10px}
 .idea .iact:active{background:var(--fill)}
+.idea .igrip{flex:none;width:36px;height:50px;display:flex;align-items:center;justify-content:center;color:var(--text2);opacity:.6;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.idea .iact{width:36px}
+.idea.shift{transition:transform .16s ease-out}
+body.nosel,body.nosel *{-webkit-user-select:none!important;user-select:none!important;cursor:grabbing}
+.idea.dragging{position:relative;z-index:5;background:var(--surface);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);border-top-color:transparent}
+.idea.dragging .igrip{cursor:grabbing;opacity:1;color:var(--accent)}
 .idea.done textarea{color:var(--text2);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--text2) 50%,transparent);font-weight:500}
 .idea.done .idet{opacity:.7}
 .idea.addi .cb{color:var(--text2)}
@@ -361,6 +367,7 @@ const IC={
   court:'<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M12 6v12M3 12h4.5M16.5 12H21"/>',
   toplan:'<path d="M5 12h12M12 6l6 6-6 6"/>',
   minus:'<path d="M5 12h14"/>',
+  grip:'<g fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></g>',
   spark:'<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
 };
 const ico=(n,s=22,w=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
@@ -1183,8 +1190,58 @@ function ideasBlock(page,g){
     row.append(cb,body);
     if(!i.done&&!ps) row.append(h("button",{class:"iact","aria-label":"In nächste Einheit übernehmen",title:"In nächste Einheit übernehmen",html:ico("toplan",20),
       onclick:()=>{ planIdea(g,i); render(); }}));
+    if(!i.done){
+      row.dataset.open=i.id;
+      const grip=h("span",{class:"igrip","aria-label":"Ziehen zum Verschieben",title:"Ziehen zum Verschieben",html:ico("grip",20)});
+      grip.addEventListener("pointerdown",e=>startDrag(e,row,grip));
+      grip.addEventListener("mousedown",e=>e.preventDefault());
+      grip.addEventListener("touchstart",e=>e.preventDefault(),{passive:false});
+      row.append(grip);
+    }
     row.__fit=()=>autosize(ta);
     return row;
+  }
+  /* Verschieben per Ziehgriff (Finger oder Maus) */
+  function startDrag(e,row,grip){
+    if(e.button>0) return;
+    e.preventDefault();
+    if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+    const rows=$$(".idea[data-open]",box), idx=rows.indexOf(row); if(idx<0) return;
+    const rects=rows.map(r=>r.getBoundingClientRect()), hgt=rects[idx].height;
+    const y0=e.clientY, sy0=scrollY; let target=idx, dy=0, raf=0, lastY=e.clientY;
+    try{ grip.setPointerCapture(e.pointerId); }catch(_){}
+    getSelection&&getSelection().removeAllRanges();
+    document.body.classList.add("nosel");
+    row.classList.add("dragging"); rows.forEach(r=>{ if(r!==row) r.classList.add("shift"); });
+    const layout=()=>{
+      dy=lastY-y0+(scrollY-sy0);
+      row.style.transform="translateY("+dy+"px)";
+      const mid=rects[idx].top+hgt/2+dy;
+      target=idx;
+      rows.forEach((r,j)=>{ if(j===idx) return; const m=rects[j].top+rects[j].height/2;
+        if(j>idx&&mid>m) target=Math.max(target,j); if(j<idx&&mid<m) target=Math.min(target,j); });
+      rows.forEach((r,j)=>{ if(j===idx) return;
+        r.style.transform=(j>idx&&j<=target)?"translateY("+(-hgt)+"px)":(j<idx&&j>=target)?"translateY("+hgt+"px)":""; });
+    };
+    const edge=()=>{   // am Bildschirmrand langsam mitscrollen
+      const vh=window.visualViewport?visualViewport.height:innerHeight;
+      if(lastY<90) scrollBy(0,-8); else if(lastY>vh-90) scrollBy(0,8); else { raf=0; return; }
+      layout(); raf=requestAnimationFrame(edge);
+    };
+    const move=ev=>{ if(ev.pointerId!==e.pointerId) return; ev.preventDefault(); lastY=ev.clientY; layout(); if(!raf) raf=requestAnimationFrame(edge); };
+    const up=ev=>{
+      if(ev&&ev.pointerId!==e.pointerId) return;
+      removeEventListener("pointermove",move); removeEventListener("pointerup",up); removeEventListener("pointercancel",up);
+      cancelAnimationFrame(raf); document.body.classList.remove("nosel"); getSelection&&getSelection().removeAllRanges();
+      rows.forEach(r=>{ r.style.transform=""; r.classList.remove("shift","dragging"); });
+      if(target!==idx){
+        const open=g.ideas.filter(i=>!i.done), done=g.ideas.filter(i=>i.done);
+        const [it]=open.splice(idx,1); open.splice(target,0,it);
+        g.ideas=[...open,...done]; touch(g); save();
+      }
+      draw();
+    };
+    addEventListener("pointermove",move,{passive:false}); addEventListener("pointerup",up); addEventListener("pointercancel",up);
   }
   function draw(){
     box.replaceChildren(); foot.replaceChildren();
