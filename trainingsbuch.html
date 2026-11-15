@@ -1111,8 +1111,18 @@ function planIdea(g,i){
   i.planned=s.id; touch(s); touch(g); save();
   toast("In Einheit "+fmtMid(s.date)+" übernommen");
 }
+/* Bereits vorhandene Doppelungen aufräumen: nur automatisch erkannte, unberührte Themen werden entfernt */
+function dedupeIdeas(g){
+  const out=[]; let removed=0;
+  for(const i of g.ideas){
+    const auto=i.src&&!i.edited&&!i.planned&&!i.done;
+    if(auto&&out.some(o=>sameTopic(o.text,i.text))){ removed++; continue; }
+    out.push(i);
+  }
+  if(removed){ g.ideas=out; touch(g); save(); }
+}
 function ideasBlock(page,g){
-  g.ideas||=[];
+  g.ideas||=[]; dedupeIdeas(g);
   const wrap=h("div"); page.append(wrap);
   wrap.append(h("div",{class:"h2",style:"margin-top:6px"},"Themen & Ideen"));
   const banner=h("div"); wrap.append(banner);
@@ -1143,7 +1153,9 @@ function ideasBlock(page,g){
   const addRow=h("div",{class:"idea addi"},h("span",{class:"cb",html:ico("plus",19)}),h("div",{class:"ibody"},addTa));
   const commit=()=>{
     const t=addTa.value.trim(); if(!t) return false;
-    g.ideas.push({id:uid(),text:t,detail:"",done:false,createdAt:Date.now(),edited:true});
+    const dup=g.ideas.find(i=>!i.done&&sameTopic(i.text,t));
+    if(dup){ toast("Gibt es schon: „"+dup.text+"“"); addTa.value=""; return true; }
+    g.ideas.push({id:uid(),text:t,done:false,createdAt:Date.now(),edited:true});
     addTa.value=""; touch(g); save(); return true;
   };
   addTa.addEventListener("input",()=>autosize(addTa));
@@ -1166,12 +1178,8 @@ function ideasBlock(page,g){
     ta.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.isComposing){ e.preventDefault(); ta.blur(); } });
     ta.addEventListener("blur",()=>{ if(!ta.value.trim()){ g.ideas=g.ideas.filter(x=>x!==i); touch(g); save(); draw(); } });
     const body=h("div",{class:"ibody"},ta);
-    if(i.detail) body.append(h("div",{class:"idet"},i.detail));
-    const src=[];
-    if(i.src&&i.src.date) src.push(h("span",{},"aus Memo vom "+fmtShort(i.src.date)));
     const ps=i.planned&&sess(i.planned);
-    if(ps) src.push(h("button",{class:"pl",onclick:()=>go("/e/"+ps.id)},"eingeplant · "+fmtMid(ps.date)));
-    if(src.length) body.append(h("div",{class:"isrc"},...src));
+    if(ps) body.append(h("div",{class:"isrc"},h("button",{class:"pl",onclick:()=>go("/e/"+ps.id)},"eingeplant · "+fmtMid(ps.date))));
     row.append(cb,body);
     if(!i.done&&!ps) row.append(h("button",{class:"iact","aria-label":"In nächste Einheit übernehmen",title:"In nächste Einheit übernehmen",html:ico("toplan",20),
       onclick:()=>{ planIdea(g,i); render(); }}));
@@ -1535,11 +1543,10 @@ function memoEl(s,m){
       ta.addEventListener("input",()=>{m.transcript=ta.value;m.mTransAt=Date.now();autosize(ta);touch(s);saveSoft();});
       holder.append(ta); setTimeout(()=>autosize(ta),0);
     }
-    if(m.mAnaAt&&(m.summary||m.ideaCount)){
+    if(m.mAnaAt&&g){
       const n=m.ideaCount||0;
-      holder.append(h("div",{class:"msum"},h("b",{},"Auswertung"),m.summary||"",
-        g?h("div",{style:"margin-top:4px"},h("button",{class:"linkbtn",style:"padding:2px 0",onclick:()=>go("/s/"+g.id)},
-          n?(n===1?"1 neues Thema":n+" neue Themen")+" in „"+g.name+"“ →":"Keine neuen Themen · zur Stunde →")):null));
+      holder.append(h("button",{class:"linkbtn",style:"display:block;padding:8px 0 0",onclick:()=>go("/s/"+g.id)},
+        n?(n===1?"1 neues Thema":n+" neue Themen")+" in „"+g.name+"“ →":"Keine neuen Trainingsthemen"));
     }
     const row=h("div",{class:"mrow"});
     const btn=h("button",{class:"linkbtn"},hasT?"Neu transkribieren":"Transkribieren");
@@ -1736,15 +1743,25 @@ async function llmJSON(system,user){
 }
 const normT=t=>String(t||"").toLowerCase().replace(/[^a-zäöüß0-9]+/g," ").trim();
 const anaBusy=new Set();
-const ANA_SYS=`Du bist die Assistenz eines Tennistrainers. Er spricht nach oder während des Trainings Sprachmemos ein. Deine Aufgabe: Aus dem Transkript die konkreten Themen, Ideen und Vorhaben herausziehen, die er in kommenden Stunden dieser Gruppe umsetzen, üben oder beachten will. Dazu gehören auch Beobachtungen zu einzelnen Spielern (dann den Namen voranstellen, z. B. „Lena: Griffwechsel beim Volley“) und organisatorische Punkte (z. B. „Bälle für Kleinfeld mitbringen“).
+const ANA_SYS=`Du bist die Assistenz eines Tennistrainers. Er spricht Sprachmemos ein. Deine einzige Aufgabe: aus dem Transkript die Dinge herausziehen, die er laut eigener Aussage TRAINIEREN möchte – also Schläge, Techniken, Übungen, Spielformen oder taktische Inhalte, die er üben lassen will.
 Regeln:
-- Nur was wirklich im Memo steckt. Nichts erfinden, keine allgemeinen Tennis-Tipps.
-- "titel": kurzer Stichpunkt wie auf einer Trainer-To-do-Liste, höchstens 8 Wörter, Deutsch.
-- "detail": ein kurzer Satz mit dem Kontext aus dem Memo (warum oder wie), sonst leer.
-- Keine Doppelungen, auch nicht mit den bereits offenen Themen der Stunde.
-- Höchstens 8 Themen. Enthält das Memo nichts Verwertbares, gib eine leere Liste zurück.
+- Nur Trainingsinhalte, die er im Memo selbst nennt. Keine Zusammenfassung, keine Beobachtungen ohne Trainingsabsicht, nichts Organisatorisches, keine allgemeinen Tennis-Tipps, nichts erfinden.
+- Jeder Punkt ist ein kurzer Stichpunkt, höchstens 6 Wörter, Deutsch, ohne Satzzeichen am Ende (z. B. „Ballwurf beim Aufschlag“, „Cross-Duell Rückhand“, „König des Platzes“).
+- Bezieht sich ein Trainingsinhalt ausdrücklich auf einen Spieler, den Namen voranstellen („Paul: Ballwurf beim Aufschlag“).
+- Absolut keine Doppelungen: nichts zweimal in deiner Liste und nichts, was inhaltlich schon in den vorhandenen Themen steht – auch nicht in anderen Worten.
+- Enthält das Memo nichts, was er trainieren möchte, gib eine leere Liste zurück.
 - Das Transkript stammt aus Spracherkennung in einer lauten Halle: offensichtliche Erkennungsfehler sinngemäß korrigieren (Tennisbegriffe!).
-Antworte ausschließlich als JSON-Objekt: {"zusammenfassung":"1–2 Sätze, worum es im Memo geht","themen":[{"titel":"…","detail":"…"}]}`;
+Antworte ausschließlich als JSON-Objekt: {"themen":["…","…"]}`;
+/* Doppelte Themen erkennen, auch bei leicht anderer Formulierung */
+const TOPIC_STOP=new Set("der die das den dem des ein eine einen einem einer und oder mit im in am an auf aus bei beim für fuer zu zum zur von vom mal noch mehr viel sehr auch nicht nur ich wir er sie es man soll sollen will wollen möchte möchten mag üben ueben trainieren training übung übungen machen nächstes nächste mal".split(" "));
+const topicToks=t=>new Set(normT(t).split(" ").filter(w=>w&&!TOPIC_STOP.has(w)).map(w=>w.length>6?w.slice(0,6):w));
+function sameTopic(a,b){
+  const A=topicToks(a), B=topicToks(b);
+  if(!A.size||!B.size) return normT(a)===normT(b);
+  let inter=0; A.forEach(x=>{ if(B.has(x)) inter++; });
+  const small=Math.min(A.size,B.size);
+  return inter/(A.size+B.size-inter)>=0.6 || (inter===small&&(small>=2||A.size===B.size));
+}
 async function analyzeMemo(s,m){
   const g=grp(s.groupId);
   if(!g) throw new Error("Einheit gehört zu keiner Stunde");
@@ -1752,21 +1769,23 @@ async function analyzeMemo(s,m){
   anaBusy.add(m.id);
   try{
     g.ideas||=[];
-    const open=g.ideas.filter(i=>!i.done&&!(i.src&&i.src.m===m.id)).map(i=>"- "+i.text).join("\n");
+    /* Erneut auswerten: noch unberührte Themen aus diesem Memo ersetzen, bearbeitete/abgehakte/eingeplante bleiben */
+    const keep=g.ideas.filter(i=>!(i.src&&i.src.m===m.id&&!i.done&&!i.edited&&!i.planned));
+    const known=keep.map(i=>"- "+i.text+(i.done?" (erledigt)":"")).join("\n");
     const usr="Stunde: "+g.name+"\nEinheit: "+fmtLong(s.date)+(s.title?" · Fokus: "+s.title:"")+"\n"+
-      (open?"Bereits offene Themen der Stunde:\n"+open+"\n":"")+"\nTranskript:\n\"\"\"\n"+m.transcript.trim()+"\n\"\"\"";
+      (known?"Vorhandene Themen der Stunde (nicht wiederholen):\n"+known+"\n":"")+"\nTranskript:\n\"\"\"\n"+m.transcript.trim()+"\n\"\"\"";
     const j=await llmJSON(ANA_SYS,usr);
     const list=(Array.isArray(j.themen)?j.themen:Array.isArray(j.topics)?j.topics:[])
-      .map(t=>typeof t==="string"?{titel:t,detail:""}:{titel:String(t.titel||t.title||"").trim(),detail:String(t.detail||"").trim()})
-      .filter(t=>t.titel).slice(0,10);
-    /* Erneut auswerten: noch unberührte Themen aus diesem Memo ersetzen, bearbeitete/abgehakte/eingeplante bleiben */
-    g.ideas=g.ideas.filter(i=>!(i.src&&i.src.m===m.id&&!i.done&&!i.edited&&!i.planned));
-    const have=new Set(g.ideas.map(i=>normT(i.text)));
+      .map(t=>String(typeof t==="string"?t:(t&&(t.titel||t.title))||"").replace(/^[\s\-–•*]+/,"").replace(/[.;,]+\s*$/,"").trim())
+      .filter(Boolean).slice(0,12);
+    g.ideas=keep;
     const fresh=[];
-    list.forEach(t=>{ const k=normT(t.titel); if(have.has(k)) return; have.add(k);
-      fresh.push({id:uid(),text:t.titel,detail:t.detail,done:false,src:{s:s.id,m:m.id,date:s.date},createdAt:Date.now()}); });
+    list.forEach(t=>{
+      if(g.ideas.some(i=>sameTopic(i.text,t))||fresh.some(f=>sameTopic(f.text,t))) return;   // nichts doppelt
+      fresh.push({id:uid(),text:t,done:false,src:{s:s.id,m:m.id,date:s.date},createdAt:Date.now()});
+    });
     g.ideas=[...fresh,...g.ideas];
-    m.summary=String(j.zusammenfassung||j.summary||"").trim(); m.ideaCount=fresh.length; m.mAnaAt=Date.now();
+    delete m.summary; m.ideaCount=fresh.length; m.mAnaAt=Date.now();
     touch(g); touch(s); save();
     return fresh.length;
   } finally { anaBusy.delete(m.id); }
