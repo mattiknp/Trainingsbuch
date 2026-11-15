@@ -180,6 +180,10 @@ button.row:active{background:var(--fill)}
 .stepper .sn{min-width:34px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
 .kin{flex:none;width:76px;text-align:right;background:var(--fill);border-radius:9px;padding:7px 10px;font-weight:700;font-variant-numeric:tabular-nums}
 .kunit{flex:none;color:var(--text2);font-size:15px;margin-left:-4px}
+.konto .kright{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.konto .kmoney{font-size:14px;font-weight:600;color:var(--accent);padding:0;font-variant-numeric:tabular-nums}
+.konto .kmoney.warn-t{color:#c98a0b}
+.konto .kmoney.ok{color:var(--accent)}
 .gap{height:10px}
 .thumbwrap{padding:0 14px 8px 48px}
 .area{width:100%;padding:14px 16px;min-height:96px;line-height:1.45}
@@ -498,9 +502,9 @@ function ensure(s){
     x.items.forEach(i=>{ i.id||=uid(); i.indent=Math.max(0,Math.min(2,i.indent||0)); });
   });
   s.pins.forEach(p=>{ p.groupId=p.groupId||null; });
-  /* Stundenkonto: Montagstraining + ausgezahlte Stunden je Abrechnungszeitraum (wird mit synchronisiert) */
+  /* Stundenkonto: eigenes Training (montags) + ausgezahlte Stunden je Abrechnungszeitraum (wird mit synchronisiert) */
   s.extra=Object.assign({updatedAt:0},s.extra||{});
-  s.extra.monday=Object.assign({on:true,durMin:60,inBalance:true,adj:{}},s.extra.monday||{});
+  s.extra.monday=Object.assign({on:true,durMin:60,inBalance:true,adj:{},from:"2026-11"},s.extra.monday||{});
   s.extra.monday.adj||={}; s.extra.paid||={};
   return s;
 }
@@ -857,17 +861,33 @@ function monatView(ym){
   });
   return root;
 }
-/* ---- Stundenkonto: Montagstraining mitzählen, Auszahlungen eintragen, Rest anzeigen ---- */
+/* ---- Stundenkonto: eigenes Training (montags) mitzählen, Auszahlungen eintragen, Rest anzeigen ---- */
 const parseH=v=>{ const n=parseFloat(String(v||"").replace(",",".").replace(/[^\d.\-]/g,"")); return isFinite(n)?n:null; };
+/* Eigenes Training läuft erst ab einem Abrechnungszeitraum (Standard: November-Abrechnung = ab 16.10.) */
+const mondayActive=ym=>state.extra.monday.on&&ym>=(state.extra.monday.from||"0000-00");
 function mondayAuto(ym){
+  if(!mondayActive(ym)) return 0;
   const {from,to}=periodOf(ym), end=to<todayISO()?to:todayISO(); let n=0;
   for(let d=new Date(from+"T00:00:00"); isoOf(d)<=end; d.setDate(d.getDate()+1)) if(d.getDay()===1) n++;
   return n;
 }
-const mondayCount=ym=>Math.max(0,mondayAuto(ym)+(state.extra.monday.adj[ym]||0));
-const mondayHours=ym=>state.extra.monday.on?mondayCount(ym)*(state.extra.monday.durMin||60)/60:0;
+const mondayCount=ym=>mondayActive(ym)?Math.max(0,mondayAuto(ym)+(state.extra.monday.adj[ym]||0)):0;
+const mondayHours=ym=>mondayCount(ym)*(state.extra.monday.durMin||60)/60;
 const periodTotal=ym=>{ const {from,to}=periodOf(ym); return dayRows(from,to).reduce((a,r)=>a+r.hours,0); };
-const periodSoll=ym=>periodTotal(ym)+(state.extra.monday.inBalance?mondayHours(ym):0);
+/* Eigenes Training (montags) wird abgezogen (negativ angerechnet) */
+const periodSoll=ym=>periodTotal(ym)-(state.extra.monday.inBalance?mondayHours(ym):0);
+const fmtEUR=v=>v.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+function rateSheet(after){
+  const r=state.extra.rate;
+  openSheet(`<div class="sheet-title">Stundenlohn</div>
+    <div class="sheet-note">Damit wird bei „Fehlen noch“ der Betrag in Euro angezeigt. Wird über deine private Cloud mit abgeglichen.</div>
+    <span class="flabel">Euro pro Stunde</span><input id="rtIn" class="field" inputmode="decimal" autocomplete="off" placeholder="z. B. 15" value="${r?esc(String(r).replace(".",",")):""}">
+    <div class="sheet-grp"><button class="sheet-btn primary" id="rtSave">Speichern</button></div>`,after);
+  const inp=$("#rtIn",sheetPanel); setTimeout(()=>inp.focus(),250);
+  const done=()=>{ const v=parseH(inp.value); if(v==null||!inp.value.trim()) delete state.extra.rate; else state.extra.rate=Math.round(v*100)/100; state.extra.updatedAt=Date.now(); save(); closeSheet(); };
+  $("#rtSave",sheetPanel).addEventListener("click",done);
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); done(); } });
+}
 function kontoBlock(page,ym,total){
   const ex=state.extra, mo=ex.monday;
   const box=h("div"); page.append(box);
@@ -877,40 +897,42 @@ function kontoBlock(page,ym,total){
     box.append(h("div",{class:"h2"},"Stundenkonto"));
     const g=h("div",{class:"group konto"}); box.append(g);
     g.append(h("div",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Stundenliste")),h("span",{class:"kval"},fmtH(total)+" Std.")));
-    if(mo.on){
+    if(mondayActive(ym)){
       const n=mondayCount(ym), hrs=mondayHours(ym);
       const step=d=>{ const next=Math.max(0,n+d); mo.adj[ym]=next-mondayAuto(ym); if(!mo.adj[ym]) delete mo.adj[ym]; touchX(); draw(); };
       g.append(h("div",{class:"row"},
-        h("button",{class:"grow",style:"text-align:left",onclick:mondaySheet},h("div",{class:"name"},"Montagstraining"),
-          h("div",{class:"sub"},fmtH(hrs)+" Std. · je "+fmtH((mo.durMin||60)/60)+" Std."+(mo.inBalance?"":" · nicht im Konto"))),
+        h("button",{class:"grow",style:"text-align:left",onclick:mondaySheet},h("div",{class:"name"},"Eigenes Training"),
+          h("div",{class:"sub"},(mo.inBalance&&hrs?"−":"")+fmtH(hrs)+" Std. · je "+fmtH((mo.durMin||60)/60)+" Std."+(mo.inBalance?"":" · nicht im Konto"))),
         h("div",{class:"stepper"},
-          h("button",{"aria-label":"Ein Montagstraining weniger",onclick:()=>step(-1),html:ico("minus",18,2.2)}),
+          h("button",{"aria-label":"Ein eigenes Training weniger",onclick:()=>step(-1),html:ico("minus",18,2.2)}),
           h("span",{class:"sn"},n+"×"),
-          h("button",{"aria-label":"Ein Montagstraining mehr",onclick:()=>step(1),html:ico("plus",18,2.2)}))));
+          h("button",{"aria-label":"Ein eigenes Training mehr",onclick:()=>step(1),html:ico("plus",18,2.2)}))));
     }
     const soll=periodSoll(ym);
-    if(mo.on&&mo.inBalance) g.append(h("div",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Gesamt")),h("span",{class:"kval b"},fmtH(soll)+" Std.")));
+    if(mondayActive(ym)&&mo.inBalance) g.append(h("div",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Gesamt")),h("span",{class:"kval b"},fmtH(soll)+" Std.")));
     const inp=h("input",{class:"kin",inputmode:"decimal",enterkeyhint:"done",placeholder:"0","aria-label":"Ausgezahlte Stunden",autocomplete:"off",
       value:ex.paid[ym]!=null?fmtH(ex.paid[ym]):""});
     inp.addEventListener("change",()=>{ const v=parseH(inp.value); if(v==null||inp.value.trim()==="") delete ex.paid[ym]; else ex.paid[ym]=Math.round(v*100)/100; touchX(); draw(); });
     inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); inp.blur(); } });
     g.append(h("label",{class:"row"},h("span",{class:"grow"},h("div",{class:"name"},"Ausgezahlt"),h("div",{class:"sub"},"Für diesen Zeitraum")),inp,h("span",{class:"kunit"},"Std.")));
-    const paid=ex.paid[ym], rest=soll-(paid||0);
-    g.append(h("div",{class:"row kres"},h("span",{class:"grow"},h("div",{class:"name"},rest<-0.004?"Zu viel ausgezahlt":"Fehlen noch")),
-      h("span",{class:"kval b "+(paid==null?"":rest>0.004?"warn-t":"ok")},fmtH(Math.abs(rest))+" Std.")));
+    const paid=ex.paid[ym], rest=soll-(paid||0), cls=paid==null?"":rest>0.004?"warn-t":"ok";
+    const money=h("button",{class:"kmoney "+cls,onclick:()=>rateSheet(draw)},ex.rate?fmtEUR(Math.abs(rest)*ex.rate):"Stundenlohn eintragen");
+    g.append(h("div",{class:"row kres"},h("span",{class:"grow"},h("div",{class:"name"},rest<-0.004?"Zu viel ausgezahlt":"Fehlen noch"),
+        ex.rate?h("div",{class:"sub"},"bei "+fmtEUR(ex.rate)+" pro Std."):null),
+      h("span",{class:"kright"},h("span",{class:"kval b "+cls},fmtH(Math.abs(rest))+" Std."),money)));
     /* Über alle Zeiträume seit der ersten eingetragenen Auszahlung */
     const keys=Object.keys(ex.paid).sort();
     if(keys.length&&keys[0]<ym){
       let sum=0; for(let p=keys[0]; p<=ym; p=shiftMonth(p,1)) sum+=periodSoll(p)-(ex.paid[p]||0);
-      box.append(h("p",{class:"hint",style:"margin-top:10px"},"Insgesamt "+(sum<-0.004?"zu viel ausgezahlt":"offen")+" seit "+periodName(keys[0]).split(" ")[0]+": "+fmtH(Math.abs(sum))+" Std."));
+      box.append(h("p",{class:"hint",style:"margin-top:10px"},"Insgesamt "+(sum<-0.004?"zu viel ausgezahlt":"offen")+" seit "+periodName(keys[0]).split(" ")[0]+": "+fmtH(Math.abs(sum))+" Std."+(ex.rate?" · "+fmtEUR(Math.abs(sum)*ex.rate):"")));
     }
-    if(!mo.on) box.append(h("button",{class:"linkbtn",style:"margin-top:6px",onclick:()=>{ mo.on=true; touchX(); draw(); }},"Montagstraining mitzählen"));
+    if(!mo.on) box.append(h("button",{class:"linkbtn",style:"margin-top:6px",onclick:()=>{ mo.on=true; touchX(); draw(); }},"Eigenes Training mitzählen"));
   }
   function mondaySheet(){
-    openSheet(`<div class="sheet-title">Montagstraining</div>
-      <div class="sheet-note">Zählt automatisch jeden Montag im Zeitraum (bis heute). Ausgefallene oder zusätzliche Termine mit − / + korrigieren. Die PDF-Stundenliste bleibt unverändert.</div>
+    openSheet(`<div class="sheet-title">Eigenes Training</div>
+      <div class="sheet-note">Zählt automatisch jeden Montag im Zeitraum (bis heute) und zieht die Stunden im Stundenkonto ab – ab der ${esc(periodName(mo.from||"2026-11").split(" ")[0])}-Abrechnung. Ausgefallene oder zusätzliche Termine mit − / + korrigieren. Die PDF-Stundenliste bleibt unverändert.</div>
       <span class="flabel">Dauer pro Training</span><div class="chips" id="moDur">${[[60,"1 Std"],[90,"1,5 Std"],[120,"2 Std"],[150,"2,5 Std"],[180,"3 Std"]].map(([v,l])=>`<button class="chip${(mo.durMin||60)===v?" on":""}" data-v="${v}">${l}</button>`).join("")}</div>
-      <label class="switchrow" style="margin-top:16px"><span>Im Stundenkonto mitrechnen</span><input type="checkbox" id="moBal" ${mo.inBalance?"checked":""}></label>
+      <label class="switchrow" style="margin-top:16px"><span>Im Stundenkonto abziehen</span><input type="checkbox" id="moBal" ${mo.inBalance?"checked":""}></label>
       <div class="group" style="margin-top:22px"><button class="row danger" id="moOff"><span class="grow"><div class="name">Nicht mehr mitzählen</div></span></button></div>`,()=>render());
     $$("#moDur .chip",sheetPanel).forEach(b=>b.addEventListener("click",()=>{ mo.durMin=+b.dataset.v; $$("#moDur .chip",sheetPanel).forEach(x=>x.classList.toggle("on",x===b)); touchX(); }));
     $("#moBal",sheetPanel).addEventListener("change",e=>{ mo.inBalance=e.target.checked; touchX(); });
