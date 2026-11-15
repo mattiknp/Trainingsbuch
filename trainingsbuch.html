@@ -142,6 +142,8 @@ button.row:active{background:var(--fill)}
 .subhead{margin:10px 8px 4px;padding:10px 14px 9px;border-radius:10px;font-weight:700;color:var(--text);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
 .kbbar button.on{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
 .kbbar .hbtn{font-weight:800;font-size:18px;letter-spacing:-.02em}
+.kbbar button[data-a=fav].on{color:#d49b12;background:color-mix(in srgb,#d49b12 16%,transparent)}
+.item .favmark{flex:none;width:30px;height:44px;display:flex;align-items:center;justify-content:center;color:#d49b12;margin-left:2px}
 
 /* ---- Themen & Ideen (aus Sprachmemos) ---- */
 .ideas{padding:2px 0}
@@ -203,9 +205,9 @@ body.nosel,body.nosel *{-webkit-user-select:none!important;user-select:none!impo
 
 /* ---- Tastatur-Leiste ---- */
 .kbbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:4px 8px calc(4px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:2px}
-.kbbar button{width:48px;height:44px;border-radius:10px;color:var(--text);display:flex;align-items:center;justify-content:center}
+.kbbar button{width:39px;height:44px;border-radius:10px;color:var(--text);display:flex;align-items:center;justify-content:center}
 .kbbar button:active{background:var(--fill)}
-.kbbar .sp{width:14px}
+.kbbar .sp{width:10px}
 
 /* ---- Sheets ---- */
 .sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
@@ -300,6 +302,7 @@ body.nosel,body.nosel *{-webkit-user-select:none!important;user-select:none!impo
   <button data-a="dn" aria-label="Nach unten"></button>
   <span class="sp"></span>
   <button data-a="head" class="hbtn" aria-label="Überschrift an/aus">H</button>
+  <button data-a="fav" aria-label="Gute Übung (kommt in die Übungssammlung)"></button>
   <button data-a="court" aria-label="Zielzonen-Skizze"></button>
   <button data-a="del" aria-label="Punkt löschen"></button>
 </div>
@@ -367,11 +370,13 @@ const IC={
   court:'<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M12 6v12M3 12h4.5M16.5 12H21"/>',
   toplan:'<path d="M5 12h12M12 6l6 6-6 6"/>',
   minus:'<path d="M5 12h14"/>',
+  star:'<path d="M12 3.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6-5-2.8-5 2.8 1-5.6-4.1-3.9 5.6-.7z"/>',
+  starf:'<path d="M12 3.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6-5-2.8-5 2.8 1-5.6-4.1-3.9 5.6-.7z" fill="currentColor"/>',
   grip:'<g fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></g>',
   spark:'<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
 };
 const ico=(n,s=22,w=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
-$$("#kbbar button").forEach(b=>{ if(b.dataset.a==="head") return; b.innerHTML=ico({out:"outdent",in:"indent",up:"up",dn:"dn",court:"court",del:"trash"}[b.dataset.a],22); });
+$$("#kbbar button").forEach(b=>{ if(b.dataset.a==="head") return; b.innerHTML=ico({out:"outdent",in:"indent",up:"up",dn:"dn",court:"court",del:"trash",fav:"star"}[b.dataset.a],22); });
 
 /* ---------- IndexedDB (Audio) ---------- */
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("trainingsbuch",1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("audio"))r.result.createObjectStore("audio");};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
@@ -1046,6 +1051,7 @@ function timeSheet(s){
 function homeMenu(){
   const tm=state.settings.themeMode||"auto";
   menuSheet("Einstellungen",[
+    {label:"Übungssammlung öffnen",sub:"Übungen mit Stern und häufige Übungen landen dort von selbst",fn:()=>{ flushSave(); location.href="https://mattiknp.github.io/-bungsammlung/"; }},
     {label:"Cloud-Sync",sub:CFG.on()?"Aktiv – Handy und Mac abgleichen":"Über GitHub einrichten",fn:cloudSheet},
     {label:"Transkription",sub:STT.key()?"Aktiv ("+(STT.prov()==="groq"?"Groq":"OpenAI")+")":"Sprachmemos automatisch in Text",fn:sttSheet},
     {label:"Abrechnung",sub:BILL.name()||"Name und IBAN für die Stundenliste",fn:()=>billingSheet()},
@@ -1370,9 +1376,13 @@ function einheitView(s){
     if(t.length<=48&&/[^:\s]:$/.test(t)&&!/^\d/.test(t)) return {text:t.slice(0,-1).trim(),head:true};
     return {text:t,head:false};
   };
-  const headBtn=$('[data-a=head]',kbbar);
+  const headBtn=$('[data-a=head]',kbbar), favBtn=$('[data-a=fav]',kbbar);
   let addHead=false;
-  const syncHeadBtn=()=>headBtn.classList.toggle("on",activeIt?!!activeIt.head:addHead);
+  const syncHeadBtn=()=>{
+    headBtn.classList.toggle("on",activeIt?!!activeIt.head:addHead);
+    const f=!!(activeIt&&activeIt.fav); favBtn.classList.toggle("on",f); favBtn.innerHTML=ico(f?"starf":"star",22);
+    favBtn.style.opacity=(activeIt&&!activeIt.head)?"":".35";
+  };
 
   const addTa=h("textarea",{class:"it",rows:"1",placeholder:"Punkt hinzufügen","aria-label":"Punkt hinzufügen",enterkeyhint:"next",autocapitalize:"sentences"});
   const addRow=h("div",{class:"item addrow"},h("span",{class:"bul add",html:ico("plus",19)}),addTa);
@@ -1388,9 +1398,13 @@ function einheitView(s){
   function mkRow(it){
     const bul=h("span",{class:"bul"});
     const ta=h("textarea",{class:"it",rows:"1","aria-label":"Punkt",enterkeyhint:"next",autocapitalize:"sentences"}); ta.value=it.text||"";
-    const row=h("div",{class:"item","data-id":it.id},bul,ta,it.min?h("span",{class:"min"},it.min+"′"):null);
+    const fm=h("button",{class:"favmark","aria-label":"Stern entfernen",title:"Gute Übung: kommt in die Übungssammlung",html:ico("starf",16)});
+    fm.addEventListener("pointerdown",e=>e.preventDefault());
+    fm.addEventListener("click",()=>toggleFav(it));
+    const row=h("div",{class:"item","data-id":it.id},bul,ta,fm,it.min?h("span",{class:"min"},it.min+"′"):null);
     const applyIndent=()=>{
       const i=it.head?0:clampI(it.indent||0);
+      fm.classList.toggle("hidden",!(it.fav&&!it.head));
       row.classList.toggle("head",!!it.head); row.dataset.in=String(i);
       row.style.paddingLeft=(i*24)+"px";
       ta.placeholder=it.head?"Überschrift":"Punkt"; ta.setAttribute("aria-label",it.head?"Überschrift":"Punkt");
@@ -1406,6 +1420,13 @@ function einheitView(s){
     ta.addEventListener("keydown",e=>onKey(e,it,ta));
     ta.addEventListener("paste",e=>onPaste(e,it,ta));
     return {row,ta,applyIndent,thumb:null};
+  }
+  function toggleFav(it){
+    if(it.head) return;
+    it.fav=!it.fav; if(!it.fav) delete it.fav;
+    const r=rows.get(it.id); if(r) r.applyIndent();
+    touch(s); saveSoft(); syncHeadBtn();
+    toast(!it.fav?"Stern entfernt":s.area==="kondition"?"Markiert. Kondition kommt nicht in die Übungssammlung (nur Tennis)":"Gute Übung: kommt in die Übungssammlung");
   }
   function toggleHead(it){
     it.head=!it.head; if(!it.head) delete it.head; else it.indent=0;
@@ -1538,6 +1559,7 @@ function einheitView(s){
       if(activeIt) toggleHead(activeIt); else { addHead=!addHead; applyAddIndent(); }
       return;
     }
+    if(a==="fav"){ if(activeIt&&!activeIt.head) toggleFav(activeIt); else toast("Erst einen Punkt antippen"); return; }
     if(a==="in"||a==="out"){
       const d=a==="in"?1:-1;
       if(activeIt) setIndent(activeIt,(activeIt.indent||0)+d); else { addIndent=clampI(addIndent+d); applyAddIndent(); }
