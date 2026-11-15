@@ -123,10 +123,50 @@ button.row:active{background:var(--fill)}
 .cb .box{width:22px;height:22px;border-radius:50%;border:1.6px solid color-mix(in srgb,var(--text2) 75%,transparent);display:flex;align-items:center;justify-content:center;color:var(--accent-fg);transition:background .12s,border-color .12s}
 .cb.on .box{background:var(--accent);border-color:var(--accent)}
 .cb.ghost{pointer-events:none}
+/* Aufzählungspunkt statt Haken */
+.item .bul{flex:none;width:40px;height:46px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.item .bul::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--text2)}
+.item[data-in="1"] .bul::before{background:transparent;border:1.5px solid var(--text2);width:6px;height:6px}
+.item[data-in="2"] .bul::before{width:8px;height:1.6px;border-radius:1px}
+.item .bul.add{color:var(--text2)}
+.item .bul.add::before{display:none}
 .item textarea.it{flex:1;min-width:0;padding:11px 0 9px;line-height:1.35}
-.item.done textarea.it{color:var(--text2);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--text2) 50%,transparent)}
 .item .min{flex:none;font-size:13px;color:var(--text2);padding-top:13px;margin-left:8px}
-.subhead{font-size:13px;font-weight:600;color:var(--text2);padding:12px 16px 2px}
+/* Überschrift: fett, farbig hinterlegt */
+.item.head{margin:10px 8px 4px;min-height:42px;padding-right:12px;border-radius:10px;background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.checklist>.item.head:first-child{margin-top:4px}
+.item.head .bul{width:14px;height:42px}
+.item.head .bul::before{display:none}
+.item.head textarea.it{font-weight:700;padding:10px 0 8px;letter-spacing:-.005em}
+.item.head textarea.it::placeholder{font-weight:600}
+.subhead{margin:10px 8px 4px;padding:10px 14px 9px;border-radius:10px;font-weight:700;color:var(--text);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.kbbar button.on{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.kbbar .hbtn{font-weight:800;font-size:18px;letter-spacing:-.02em}
+
+/* ---- Themen & Ideen (aus Sprachmemos) ---- */
+.ideas{padding:2px 0}
+.idea{display:flex;align-items:flex-start;padding-right:6px;border-top:1px solid var(--line)}
+.ideas>.idea:first-child{border-top:0}
+.idea .cb{flex:none;width:48px;min-height:50px;display:flex;align-items:center;justify-content:center}
+.idea .ibody{flex:1;min-width:0;padding:6px 0 8px}
+.idea textarea{width:100%;padding:7px 0 1px;line-height:1.35;font-weight:600}
+.idea .idet{font-size:14px;color:var(--text2);line-height:1.4;margin-top:1px}
+.idea .isrc{font-size:12.5px;color:var(--text2);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.idea .isrc .pl{color:var(--accent);font-weight:600}
+.idea .iact{flex:none;width:42px;height:50px;display:flex;align-items:center;justify-content:center;color:var(--text2);border-radius:10px}
+.idea .iact:active{background:var(--fill)}
+.idea.done textarea{color:var(--text2);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--text2) 50%,transparent);font-weight:500}
+.idea.done .idet{opacity:.7}
+.idea.addi .cb{color:var(--text2)}
+.idea.addi textarea{font-weight:400}
+.ideas-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 4px 0}
+.ana-banner{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,var(--surface));font-size:15px}
+.ana-banner .grow{flex:1;min-width:0}
+.ana-banner button{flex:none;color:var(--accent);font-weight:700;font-size:15px;padding:6px 2px}
+.ana-banner button:disabled{opacity:.6}
+.memo .msum{margin-top:8px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,var(--surface));font-size:15px;line-height:1.45}
+.memo .msum b{display:block;font-size:12.5px;color:var(--accent);margin-bottom:2px;letter-spacing:.01em}
+.memo .mrow{display:flex;gap:18px;flex-wrap:wrap}
 .gap{height:10px}
 .thumbwrap{padding:0 14px 8px 48px}
 .area{width:100%;padding:14px 16px;min-height:96px;line-height:1.45}
@@ -236,6 +276,7 @@ button.row:active{background:var(--fill)}
   <button data-a="up" aria-label="Nach oben"></button>
   <button data-a="dn" aria-label="Nach unten"></button>
   <span class="sp"></span>
+  <button data-a="head" class="hbtn" aria-label="Überschrift an/aus">H</button>
   <button data-a="court" aria-label="Zielzonen-Skizze"></button>
   <button data-a="del" aria-label="Punkt löschen"></button>
 </div>
@@ -300,10 +341,12 @@ const IC={
   outdent:'<path d="M4 6h16M12 11h8M12 16h8M7.5 9.5L4 12l3.5 2.5"/>',
   dl:'<path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/>',
   cal:'<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
-  court:'<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M12 6v12M3 12h4.5M16.5 12H21"/>'
+  court:'<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M12 6v12M3 12h4.5M16.5 12H21"/>',
+  toplan:'<path d="M5 12h12M12 6l6 6-6 6"/>',
+  spark:'<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
 };
 const ico=(n,s=22,w=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
-$$("#kbbar button").forEach(b=>{ b.innerHTML=ico({out:"outdent",in:"indent",up:"up",dn:"dn",court:"court",del:"trash"}[b.dataset.a],22); });
+$$("#kbbar button").forEach(b=>{ if(b.dataset.a==="head") return; b.innerHTML=ico({out:"outdent",in:"indent",up:"up",dn:"dn",court:"court",del:"trash"}[b.dataset.a],22); });
 
 /* ---------- IndexedDB (Audio) ---------- */
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("trainingsbuch",1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("audio"))r.result.createObjectStore("audio");};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
@@ -432,7 +475,7 @@ function ensure(s){
   s.tomb=Object.assign({pin:{},session:{},drill:{},memo:{},group:{}},s.tomb||{});
   for(const g of ["pin","session","drill","memo","group"]) s.tomb[g]||={};
   s.groups.forEach((g,i)=>{
-    g.order=g.order??i; g.roster||=[];
+    g.order=g.order??i; g.roster||=[]; g.ideas||=[];
     if(g.weekday!=null&&!g.time){ const pt=parseSlot(g.name).time; if(pt) g.time=pt; }
     if(!g.slotParsed){ g.slotParsed=true; if(g.weekday==null){ const p=parseSlot(g.name); if(p.weekday!=null){g.weekday=p.weekday; if(p.time&&!g.time)g.time=p.time;} } }
   });
@@ -645,7 +688,7 @@ function createStunde(name,area){
 function todayRow(g,iso){
   const s=sessionsOf(g.id).find(x=>x.date===iso);
   const tot=s?s.items.filter(i=>String(i.text||"").trim()).length:0;
-  const info=[g.time&&!parseSlot(g.name).time?g.time+" Uhr":null,g.area==="kondition"?"Kondition":null,s?(tot?tot+" Punkte geplant":"Einheit angelegt"):"Noch keine Einheit"].filter(Boolean).join(" · ");
+  const info=[g.time&&!parseSlot(g.name).time?g.time+" Uhr":null,g.area==="kondition"?"Kondition":null,s?(tot?"Geplant":"Einheit angelegt"):"Noch keine Einheit"].filter(Boolean).join(" · ");
   return h("button",{class:"row trow",onclick:()=>go(s?"/e/"+s.id:"/s/"+g.id)},
     h("span",{class:"grow"},h("div",{class:"name"},g.name),h("div",{class:"sub"},info)),
     h("span",{class:"ico chev",html:ico("chev",20)}));
@@ -917,8 +960,10 @@ function stundeView(g){
   page.append(h("button",{class:"slotline",onclick:()=>stundeSheet(g)},
     (sl?sl.text:"Termin festlegen")+(g.area==="kondition"?" · Kondition":"")+(g.noBill?" · nicht abgerechnet":"")));
 
+  const ib=ideasBlock(page,g);
+
   const tn=teilnehmerPin(g), tnEl=teilnehmerEl(tn);
-  page.append(h("div",{class:"h2",style:"margin-top:6px"},"Teilnehmer"));
+  page.append(h("div",{class:"h2"},"Teilnehmer"));
   page.append(h("div",{class:"group"},tnEl));
 
   const iso=nextPlanDate(g);
@@ -933,22 +978,124 @@ function stundeView(g){
   else{
     const gr=h("div",{class:"group"});
     ses.forEach(s=>{
-      const first=s.items.find(i=>String(i.text||"").trim());
+      const first=s.items.find(i=>i.head&&String(i.text||"").trim())||s.items.find(i=>String(i.text||"").trim());
       const prev=s.title||(first?first.text:"Noch leer");
-      const tot=s.items.filter(i=>String(i.text||"").trim()).length;
       gr.append(h("button",{class:"row",onclick:()=>go("/e/"+s.id)},
         h("span",{class:"grow"},h("div",{class:"name"},fmtMid(s.date)),h("div",{class:"sub"},prev)),
         s.kind==="nachhol"?h("span",{class:"pill hot"},"Nachhol"):null,
-        tot?h("span",{class:"meta"},doneCount(s)+"/"+tot):null,
         h("span",{class:"ico chev",html:ico("chev",20)})));
     });
     page.append(gr);
   }
   root.__after=()=>{
-    tnEl.__fit(); $$(".note",nb).forEach(n=>n.__fit&&n.__fit());
+    ib.__fit(); tnEl.__fit(); $$(".note",nb).forEach(n=>n.__fit&&n.__fit());
     if(notesFocus){ const idx=state.pins.filter(p=>(p.groupId||null)===g.id&&p.id!==tn.id).findIndex(p=>p.id===notesFocus); const n=$$(".note",nb)[idx]; if(n) $("input",n).focus(); notesFocus=null; }
   };
   return root;
+}
+/* ---- Themen & Ideen: oben in der Stunde, abhakbar, aus Sprachmemos oder von Hand ---- */
+let ideasShowDone=false;
+function nextSession(g){
+  const iso=todayISO();
+  return sessionsOf(g.id).filter(s=>s.date>=iso&&!s.cancelled).sort((a,b)=>a.date.localeCompare(b.date))[0]||null;
+}
+function planIdea(g,i){
+  let s=nextSession(g);
+  if(!s){
+    s={id:uid(),area:g.area||"tennis",groupId:g.id,date:nextPlanDate(g),title:"",status:"planned",place:"",durationMin:"",participants:"",tags:[],attend:{},items:[],note:"",reflection:"",memos:[],createdAt:Date.now(),updatedAt:Date.now()};
+    state.sessions.push(s);
+  }
+  s.items.push({id:uid(),text:i.text,done:false,group:"",indent:0,min:""});
+  i.planned=s.id; touch(s); touch(g); save();
+  toast("In Einheit "+fmtMid(s.date)+" übernommen");
+}
+function ideasBlock(page,g){
+  g.ideas||=[];
+  const wrap=h("div"); page.append(wrap);
+  wrap.append(h("div",{class:"h2",style:"margin-top:6px"},"Themen & Ideen"));
+  const banner=h("div"); wrap.append(banner);
+  const box=h("div",{class:"group ideas"}); wrap.append(box);
+  const foot=h("div",{class:"ideas-foot"}); wrap.append(foot);
+  let busy=false;
+
+  function paintBanner(){
+    banner.replaceChildren();
+    const pend=pendingMemos(g); if(!pend.length&&!busy) return;
+    const txt=h("span",{class:"grow"},busy||(pend.length===1?"1 Sprachmemo ist noch nicht ausgewertet.":pend.length+" Sprachmemos sind noch nicht ausgewertet."));
+    const b=h("button",{},STT.key()?"Auswerten":"Einrichten");
+    if(busy) b.disabled=true;
+    b.addEventListener("click",async()=>{
+      if(!STT.key()){ sttSheet(); return; }
+      busy="Wird ausgewertet …"; paintBanner();
+      try{
+        const r=await analyzeGroup(g,(n,t)=>{ busy="Werte Memo "+n+" von "+t+" aus …"; paintBanner(); });
+        busy=false;
+        toast((r.added?(r.added===1?"1 neues Thema":r.added+" neue Themen"):"Keine neuen Themen")+(r.fail?" · "+r.fail+" Memo"+(r.fail===1?"":"s")+" nicht möglich (Aufnahme fehlt hier?)":""));
+      }catch(e){ busy=false; toast("Auswertung: "+(e.message||e)); }
+      if(path()==="/s/"+g.id&&!isEditing()) render(); else { paintBanner(); draw(); }
+    });
+    banner.append(h("div",{class:"ana-banner"},h("span",{class:"ico",style:"color:var(--accent)",html:ico("spark",20)}),txt,b));
+  }
+
+  const addTa=h("textarea",{rows:"1",placeholder:"Thema hinzufügen","aria-label":"Thema hinzufügen",enterkeyhint:"done",autocapitalize:"sentences"});
+  const addRow=h("div",{class:"idea addi"},h("span",{class:"cb",html:ico("plus",19)}),h("div",{class:"ibody"},addTa));
+  const commit=()=>{
+    const t=addTa.value.trim(); if(!t) return false;
+    g.ideas.push({id:uid(),text:t,detail:"",done:false,createdAt:Date.now(),edited:true});
+    addTa.value=""; touch(g); save(); return true;
+  };
+  addTa.addEventListener("input",()=>autosize(addTa));
+  addTa.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); if(commit()){ draw(); addTa.focus(); } } });
+  addTa.addEventListener("blur",()=>{ if(commit()) draw(); });
+
+  function ideaRow(i){
+    const cb=h("button",{class:"cb","aria-label":i.done?"Wieder offen":"Abhaken","aria-pressed":i.done?"true":"false",
+      html:'<span class="box">'+(i.done?ico("check",14,2.8):"")+'</span>'});
+    const row=h("div",{class:"idea"+(i.done?" done":"")});
+    cb.addEventListener("click",()=>{
+      i.done=!i.done; if(i.done) i.doneAt=Date.now(); else delete i.doneAt;
+      touch(g); save();
+      cb.classList.toggle("on",i.done); $(".box",cb).innerHTML=i.done?ico("check",14,2.8):""; row.classList.toggle("done",i.done);
+      setTimeout(draw,i.done&&!ideasShowDone?420:0);
+    });
+    cb.classList.toggle("on",!!i.done);
+    const ta=h("textarea",{rows:"1","aria-label":"Thema",enterkeyhint:"done",autocapitalize:"sentences"}); ta.value=i.text||"";
+    ta.addEventListener("input",()=>{ i.text=ta.value; i.edited=true; autosize(ta); touch(g); saveSoft(); });
+    ta.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.isComposing){ e.preventDefault(); ta.blur(); } });
+    ta.addEventListener("blur",()=>{ if(!ta.value.trim()){ g.ideas=g.ideas.filter(x=>x!==i); touch(g); save(); draw(); } });
+    const body=h("div",{class:"ibody"},ta);
+    if(i.detail) body.append(h("div",{class:"idet"},i.detail));
+    const src=[];
+    if(i.src&&i.src.date) src.push(h("span",{},"aus Memo vom "+fmtShort(i.src.date)));
+    const ps=i.planned&&sess(i.planned);
+    if(ps) src.push(h("button",{class:"pl",onclick:()=>go("/e/"+ps.id)},"eingeplant · "+fmtMid(ps.date)));
+    if(src.length) body.append(h("div",{class:"isrc"},...src));
+    row.append(cb,body);
+    if(!i.done&&!ps) row.append(h("button",{class:"iact","aria-label":"In nächste Einheit übernehmen",title:"In nächste Einheit übernehmen",html:ico("toplan",20),
+      onclick:()=>{ planIdea(g,i); render(); }}));
+    row.__fit=()=>autosize(ta);
+    return row;
+  }
+  function draw(){
+    box.replaceChildren(); foot.replaceChildren();
+    const open=g.ideas.filter(i=>!i.done), done=g.ideas.filter(i=>i.done);
+    open.forEach(i=>box.append(ideaRow(i)));
+    box.append(addRow);
+    if(ideasShowDone) done.forEach(i=>box.append(ideaRow(i)));
+    if(!g.ideas.length&&!pendingMemos(g).length) foot.append(h("span",{class:"hint",style:"margin:0;font-size:14px"},"Sprachmemos aus den Einheiten werden hier automatisch zu Themen."));
+    if(done.length){
+      foot.append(h("button",{class:"linkbtn",onclick:()=>{ ideasShowDone=!ideasShowDone; draw(); }},ideasShowDone?"Erledigte ausblenden":"Erledigt ("+done.length+")"));
+      if(ideasShowDone) foot.append(h("button",{class:"linkbtn",style:"color:var(--text2)",onclick:()=>{
+        if(!confirm(done.length+" erledigte Themen entfernen?")) return;
+        g.ideas=g.ideas.filter(i=>!i.done); touch(g); save(); draw();
+      }},"Erledigte entfernen"));
+    }
+    if(box.isConnected) fit();
+  }
+  const fit=()=>{ $$(".idea",box).forEach(r=>r.__fit&&r.__fit()); autosize(addTa); };
+  paintBanner(); draw();
+  wrap.__fit=fit;
+  return wrap;
 }
 function createEinheit(g){
   const s={id:uid(),area:g.area||"tennis",groupId:g.id,date:nextPlanDate(g),title:"",status:"planned",place:"",durationMin:"",participants:"",tags:[],attend:{},items:[],note:"",reflection:"",memos:[],createdAt:Date.now(),updatedAt:Date.now()};
@@ -1046,28 +1193,57 @@ function einheitView(s){
   let activeIt=null, addIndent=0;
   const clampI=v=>Math.max(0,Math.min(2,v));
   const lastIt=s.items[s.items.length-1]; addIndent=lastIt?clampI(lastIt.indent||0):0;
-  const newItem=(text,group,indent)=>({id:uid(),text,done:false,group:group||"",indent:clampI(indent||0),min:""});
+  const newItem=(text,group,indent,head)=>({id:uid(),text,done:false,group:group||"",indent:head?0:clampI(indent||0),min:"",...(head?{head:true}:{})});
   const clean=t=>t.replace(/^\s*(?:[-*•–]|\d+[.)])\s+/,"").trim();
+  /* „# Aufwärmen“, „**Aufwärmen**“ oder kurze Zeile mit Doppelpunkt am Ende → Überschrift */
+  const parseLine=raw=>{
+    if(/^\s*#{1,3}\s+/.test(raw)) return {text:raw.replace(/^\s*#{1,3}\s+/,"").trim(),head:true};
+    const t=clean(raw), b=/^\*\*(.+?)\*\*:?$/.exec(t);
+    if(b) return {text:b[1].trim(),head:true};
+    if(t.length<=48&&/[^:\s]:$/.test(t)&&!/^\d/.test(t)) return {text:t.slice(0,-1).trim(),head:true};
+    return {text:t,head:false};
+  };
+  const headBtn=$('[data-a=head]',kbbar);
+  let addHead=false;
+  const syncHeadBtn=()=>headBtn.classList.toggle("on",activeIt?!!activeIt.head:addHead);
 
   const addTa=h("textarea",{class:"it",rows:"1",placeholder:"Punkt hinzufügen","aria-label":"Punkt hinzufügen",enterkeyhint:"next",autocapitalize:"sentences"});
-  const addRow=h("div",{class:"item addrow"},h("span",{class:"cb ghost",html:ico("plus",20)}),addTa);
-  const applyAddIndent=()=>{ addRow.style.paddingLeft=(addIndent*24)+"px"; };
+  const addRow=h("div",{class:"item addrow"},h("span",{class:"bul add",html:ico("plus",19)}),addTa);
+  const applyAddIndent=()=>{
+    addRow.classList.toggle("head",addHead);
+    addRow.style.paddingLeft=(addHead?0:addIndent*24)+"px";
+    addTa.placeholder=addHead?"Überschrift hinzufügen":"Punkt hinzufügen";
+    $(".bul",addRow).innerHTML=addHead?"":ico("plus",19);
+    syncHeadBtn();
+  };
   applyAddIndent();
 
   function mkRow(it){
-    const cb=h("button",{class:"cb","aria-label":"Erledigt"});
-    const ta=h("textarea",{class:"it",rows:"1",placeholder:"Punkt","aria-label":"Punkt",enterkeyhint:"next",autocapitalize:"sentences"}); ta.value=it.text||"";
-    const row=h("div",{class:"item","data-id":it.id},cb,ta,it.min?h("span",{class:"min"},it.min+"′"):null);
-    const setCb=()=>{ cb.className="cb"+(it.done?" on":""); cb.setAttribute("aria-pressed",it.done?"true":"false"); cb.innerHTML='<span class="box">'+(it.done?ico("check",14,2.8):"")+'</span>'; row.classList.toggle("done",!!it.done); };
-    const applyIndent=()=>{ row.style.paddingLeft=(clampI(it.indent||0)*24)+"px"; };
-    setCb(); applyIndent();
-    cb.addEventListener("click",()=>{ it.done=!it.done; setCb(); touch(s); saveSoft(); });
-    ta.addEventListener("input",()=>{ it.text=ta.value; autosize(ta); touch(s); saveSoft(); });
-    ta.addEventListener("focus",()=>{ activeIt=it; showBar(); reveal(ta); });
+    const bul=h("span",{class:"bul"});
+    const ta=h("textarea",{class:"it",rows:"1","aria-label":"Punkt",enterkeyhint:"next",autocapitalize:"sentences"}); ta.value=it.text||"";
+    const row=h("div",{class:"item","data-id":it.id},bul,ta,it.min?h("span",{class:"min"},it.min+"′"):null);
+    const applyIndent=()=>{
+      const i=it.head?0:clampI(it.indent||0);
+      row.classList.toggle("head",!!it.head); row.dataset.in=String(i);
+      row.style.paddingLeft=(i*24)+"px";
+      ta.placeholder=it.head?"Überschrift":"Punkt"; ta.setAttribute("aria-label",it.head?"Überschrift":"Punkt");
+      if(activeIt===it) syncHeadBtn();
+    };
+    applyIndent();
+    ta.addEventListener("input",()=>{
+      if(!it.head&&/^#\s/.test(ta.value)){ it.head=true; ta.value=ta.value.replace(/^#\s+/,""); applyIndent(); }
+      it.text=ta.value; autosize(ta); touch(s); saveSoft();
+    });
+    ta.addEventListener("focus",()=>{ activeIt=it; syncHeadBtn(); showBar(); reveal(ta); });
     ta.addEventListener("blur",()=>hideBar());
     ta.addEventListener("keydown",e=>onKey(e,it,ta));
     ta.addEventListener("paste",e=>onPaste(e,it,ta));
     return {row,ta,applyIndent,thumb:null};
+  }
+  function toggleHead(it){
+    it.head=!it.head; if(!it.head) delete it.head; else it.indent=0;
+    const r=rows.get(it.id); if(r){ r.applyIndent(); autosize(r.ta); }
+    touch(s); saveSoft(); syncHeadBtn();
   }
   function reveal(ta){
     setTimeout(()=>{ const r=ta.getBoundingClientRect(); const vh=window.visualViewport?visualViewport.height:innerHeight; if(r.bottom>vh-70||r.top<64) ta.scrollIntoView({block:"center",behavior:"smooth"}); },280);
@@ -1122,13 +1298,14 @@ function einheitView(s){
       const pos=ta.selectionStart, end=ta.selectionEnd;
       const before=v.slice(0,pos).replace(/\s+$/,""), after=v.slice(end).replace(/^\s+/,"");
       it.text=before; ta.value=before; autosize(ta);
-      const ni=newItem(after,it.group,it.indent);
+      const ni=newItem(after,it.group,it.head?0:it.indent);
       s.items.splice(idx+1,0,ni); touch(s); saveSoft();
       const r=mkRow(ni); rows.set(ni.id,r);
       const cur=rows.get(it.id); (cur.thumb||cur.row).after(r.row); autosize(r.ta);
       focusItem(ni.id,0); return;
     }
     if(e.key==="Backspace"&&ta.selectionStart===0&&ta.selectionEnd===0){
+      if(it.head){ e.preventDefault(); toggleHead(it); return; }
       if((it.indent||0)>0){ e.preventDefault(); setIndent(it,(it.indent||0)-1); return; }
       const prev=s.items[idx-1];
       if(!ta.value){ e.preventDefault(); removeItem(it,prev?{id:prev.id,pos:"end"}:"add"); return; }
@@ -1144,34 +1321,40 @@ function einheitView(s){
     const t=(e.clipboardData||window.clipboardData).getData("text");
     if(!t||!/\n/.test(t.trim())) return;
     e.preventDefault();
-    const lines=t.split(/\r?\n/).map(clean).filter(Boolean); if(!lines.length) return;
+    const lines=t.split(/\r?\n/).map(parseLine).filter(l=>l.text); if(!lines.length) return;
     const v=ta.value, a=ta.selectionStart, b=ta.selectionEnd;
-    it.text=(v.slice(0,a)+lines[0]+v.slice(b)).trim(); ta.value=it.text; autosize(ta);
+    it.text=(v.slice(0,a)+lines[0].text+v.slice(b)).trim(); ta.value=it.text; autosize(ta);
+    if(lines[0].head&&!v.trim()){ it.head=true; it.indent=0; }
     const idx=s.items.indexOf(it); let at=idx;
-    lines.slice(1).forEach(l=>{ s.items.splice(++at,0,newItem(l,it.group,it.indent)); });
+    lines.slice(1).forEach(l=>{ s.items.splice(++at,0,newItem(l.text,it.group,it.head?0:it.indent,l.head)); });
     touch(s); saveSoft(); paint({id:s.items[at].id,pos:"end"});
   }
   /* Hinzufügen-Zeile: tippen, Enter, weiter – Tastatur bleibt offen */
   function commitAdd(){
     const raw=addTa.value;
     if(!raw.trim()){ addTa.value=""; autosize(addTa); return false; }
-    const lines=raw.split(/\r?\n/).map(clean).filter(Boolean);
+    const lines=raw.split(/\r?\n/).map(parseLine).filter(l=>l.text);
     const prev=s.items[s.items.length-1];
-    lines.forEach((t,i)=>{
+    lines.forEach((l,i)=>{
       if(i===0&&prev&&prev.group) addRow.before(h("div",{class:"gap"}));
-      const ni=newItem(t,"",addIndent); s.items.push(ni);
+      const ni=newItem(l.text,"",addIndent,l.head||(i===0&&addHead)); s.items.push(ni);
       const r=mkRow(ni); rows.set(ni.id,r); addRow.before(r.row); autosize(r.ta);
     });
+    if(addHead){ addHead=false; applyAddIndent(); }
     addTa.value=""; autosize(addTa); touch(s); saveSoft(); return true;
   }
-  addTa.addEventListener("input",()=>autosize(addTa));
-  addTa.addEventListener("focus",()=>{ activeIt=null; showBar(); reveal(addTa); });
+  addTa.addEventListener("input",()=>{
+    if(!addHead&&/^#\s/.test(addTa.value)){ addHead=true; addTa.value=addTa.value.replace(/^#\s+/,""); applyAddIndent(); }
+    autosize(addTa);
+  });
+  addTa.addEventListener("focus",()=>{ activeIt=null; syncHeadBtn(); showBar(); reveal(addTa); });
   addTa.addEventListener("blur",()=>{ commitAdd(); hideBar(); });
   addTa.addEventListener("keydown",e=>{
     if(e.isComposing||e.keyCode===229) return;
     if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); commitAdd(); return; }
     if(e.key==="Tab"){ e.preventDefault(); addIndent=clampI(addIndent+(e.shiftKey?-1:1)); applyAddIndent(); return; }
     if(e.key==="Backspace"&&!addTa.value&&addTa.selectionStart===0){
+      if(addHead){ e.preventDefault(); addHead=false; applyAddIndent(); return; }
       if(addIndent>0){ e.preventDefault(); addIndent--; applyAddIndent(); return; }
       const l=s.items[s.items.length-1]; if(l){ e.preventDefault(); focusItem(l.id,"end"); }
       return;
@@ -1184,6 +1367,10 @@ function einheitView(s){
     e.preventDefault(); addTa.value=t; commitAdd();
   });
   kbHandler=(a)=>{
+    if(a==="head"){
+      if(activeIt) toggleHead(activeIt); else { addHead=!addHead; applyAddIndent(); }
+      return;
+    }
     if(a==="in"||a==="out"){
       const d=a==="in"?1:-1;
       if(activeIt) setIndent(activeIt,(activeIt.indent||0)+d); else { addIndent=clampI(addIndent+d); applyAddIndent(); }
@@ -1240,20 +1427,42 @@ function memoEl(s,m){
   const holder=h("div"); el.append(holder);
   const paintT=()=>{
     holder.replaceChildren();
-    if((m.transcript||"").trim()){
+    const hasT=!!(m.transcript||"").trim(), g=grp(s.groupId);
+    if(hasT){
       const ta=h("textarea",{rows:"1","aria-label":"Transkript"}); ta.value=m.transcript;
       ta.addEventListener("input",()=>{m.transcript=ta.value;m.mTransAt=Date.now();autosize(ta);touch(s);saveSoft();});
       holder.append(ta); setTimeout(()=>autosize(ta),0);
     }
-    const btn=h("button",{class:"linkbtn"},(m.transcript||"").trim()?"Neu transkribieren":"Transkribieren");
+    if(m.mAnaAt&&(m.summary||m.ideaCount)){
+      const n=m.ideaCount||0;
+      holder.append(h("div",{class:"msum"},h("b",{},"Auswertung"),m.summary||"",
+        g?h("div",{style:"margin-top:4px"},h("button",{class:"linkbtn",style:"padding:2px 0",onclick:()=>go("/s/"+g.id)},
+          n?(n===1?"1 neues Thema":n+" neue Themen")+" in „"+g.name+"“ →":"Keine neuen Themen · zur Stunde →")):null));
+    }
+    const row=h("div",{class:"mrow"});
+    const btn=h("button",{class:"linkbtn"},hasT?"Neu transkribieren":"Transkribieren");
     btn.addEventListener("click",async()=>{
       btn.disabled=true; btn.textContent="Wird transkribiert …";
       try{
         const txt=await transcribeMemo(m);
         m.transcript=txt; m.mTransAt=Date.now(); touch(s); save(); paintT();
+        if(STT.ana()) runAna();
       }catch(e){ toast("Transkription: "+(e.message||e)); btn.disabled=false; btn.textContent="Nochmal versuchen"; }
     });
-    holder.append(btn);
+    row.append(btn);
+    let abtn=null;
+    const runAna=async()=>{
+      if(abtn){ abtn.disabled=true; abtn.textContent="Wird ausgewertet …"; }
+      try{ const n=await analyzeMemo(s,m); paintT(); toast(n?(n===1?"1 Thema":n+" Themen")+" zur Stunde hinzugefügt":"Keine neuen Themen gefunden"); }
+      catch(e){ toast("Auswertung: "+(e.message||e)); if(abtn){ abtn.disabled=false; abtn.textContent="Nochmal auswerten"; } }
+    };
+    if(hasT&&g){
+      abtn=h("button",{class:"linkbtn"},anaBusy.has(m.id)?"Wird ausgewertet …":m.mAnaAt?"Neu auswerten":"Themen erkennen");
+      if(anaBusy.has(m.id)) abtn.disabled=true;
+      abtn.addEventListener("click",runAna);
+      row.append(abtn);
+    }
+    holder.append(row);
   };
   paintT();
   return el;
@@ -1383,7 +1592,96 @@ const STT = {
   prov: ()=>localStorage.getItem("tb_stt_prov")||"groq",
   key:  ()=>localStorage.getItem("tb_stt_key")||"",
   auto: ()=>localStorage.getItem("tb_stt_auto")==="1",
+  ana:  ()=>localStorage.getItem("tb_ana_auto")!=="0",
 };
+
+/* ---------- Auswertung: Sprachmemo → Themen & Ideen der Stunde ----------
+   Nutzt denselben Dienst und Key wie die Transkription (Groq oder OpenAI).
+   Das Modell wird einmal aus der Modell-Liste des Dienstes gewählt und gemerkt. */
+const LLM_PREF={
+  groq:["openai/gpt-oss-120b","llama-3.3-70b-versatile","moonshotai/kimi-k2-instruct","qwen/qwen3-32b","openai/gpt-oss-20b","llama-3.1-8b-instant"],
+  openai:["gpt-5-mini","gpt-4.1-mini","gpt-4o-mini","gpt-5","gpt-4.1","gpt-4o"]
+};
+const llmBase=()=>STT.prov()==="groq"?"https://api.groq.com/openai/v1":"https://api.openai.com/v1";
+async function llmModel(force){
+  const k="tb_llm_model_"+STT.prov();
+  if(!force){ const c=localStorage.getItem(k); if(c) return c; }
+  let ids=[];
+  try{ const r=await fetch(llmBase()+"/models",{headers:{Authorization:"Bearer "+STT.key()}}); if(r.ok){ const j=await r.json(); ids=(j.data||[]).map(x=>x.id); } }catch(e){}
+  const pref=LLM_PREF[STT.prov()]||LLM_PREF.groq;
+  const pick=pref.find(x=>ids.includes(x))
+    ||ids.find(x=>!/whisper|tts|guard|playai|orpheus|distil|compound|embed|audio|realtime|image|dall|moderation|transcribe|search|vision|allam/i.test(x))
+    ||pref[0];
+  localStorage.setItem(k,pick); return pick;
+}
+async function llmJSON(system,user){
+  if(!STT.key()){ sttSheet(); throw new Error("Erst API-Key hinterlegen"); }
+  for(let attempt=0;attempt<2;attempt++){
+    const model=await llmModel(attempt>0);
+    const r=await fetch(llmBase()+"/chat/completions",{method:"POST",
+      headers:{Authorization:"Bearer "+STT.key(),"Content-Type":"application/json"},
+      body:JSON.stringify({model,messages:[{role:"system",content:system},{role:"user",content:user}],response_format:{type:"json_object"}})});
+    if(!r.ok){
+      let msg="HTTP "+r.status; try{ const j=await r.json(); msg=j.error?.message||msg; }catch(e){}
+      if(attempt===0&&(r.status===404||(r.status===400&&/model/i.test(msg)))) continue;   // gemerktes Modell weg → neu wählen
+      throw new Error(msg);
+    }
+    const j=await r.json();
+    const txt=String(j.choices?.[0]?.message?.content||"").trim();
+    const mm=txt.match(/\{[\s\S]*\}/); if(!mm) throw new Error("Antwort nicht lesbar");
+    return JSON.parse(mm[0]);
+  }
+}
+const normT=t=>String(t||"").toLowerCase().replace(/[^a-zäöüß0-9]+/g," ").trim();
+const anaBusy=new Set();
+const ANA_SYS=`Du bist die Assistenz eines Tennistrainers. Er spricht nach oder während des Trainings Sprachmemos ein. Deine Aufgabe: Aus dem Transkript die konkreten Themen, Ideen und Vorhaben herausziehen, die er in kommenden Stunden dieser Gruppe umsetzen, üben oder beachten will. Dazu gehören auch Beobachtungen zu einzelnen Spielern (dann den Namen voranstellen, z. B. „Lena: Griffwechsel beim Volley“) und organisatorische Punkte (z. B. „Bälle für Kleinfeld mitbringen“).
+Regeln:
+- Nur was wirklich im Memo steckt. Nichts erfinden, keine allgemeinen Tennis-Tipps.
+- "titel": kurzer Stichpunkt wie auf einer Trainer-To-do-Liste, höchstens 8 Wörter, Deutsch.
+- "detail": ein kurzer Satz mit dem Kontext aus dem Memo (warum oder wie), sonst leer.
+- Keine Doppelungen, auch nicht mit den bereits offenen Themen der Stunde.
+- Höchstens 8 Themen. Enthält das Memo nichts Verwertbares, gib eine leere Liste zurück.
+- Das Transkript stammt aus Spracherkennung in einer lauten Halle: offensichtliche Erkennungsfehler sinngemäß korrigieren (Tennisbegriffe!).
+Antworte ausschließlich als JSON-Objekt: {"zusammenfassung":"1–2 Sätze, worum es im Memo geht","themen":[{"titel":"…","detail":"…"}]}`;
+async function analyzeMemo(s,m){
+  const g=grp(s.groupId);
+  if(!g) throw new Error("Einheit gehört zu keiner Stunde");
+  if(!(m.transcript||"").trim()) throw new Error("Noch kein Transkript");
+  anaBusy.add(m.id);
+  try{
+    g.ideas||=[];
+    const open=g.ideas.filter(i=>!i.done&&!(i.src&&i.src.m===m.id)).map(i=>"- "+i.text).join("\n");
+    const usr="Stunde: "+g.name+"\nEinheit: "+fmtLong(s.date)+(s.title?" · Fokus: "+s.title:"")+"\n"+
+      (open?"Bereits offene Themen der Stunde:\n"+open+"\n":"")+"\nTranskript:\n\"\"\"\n"+m.transcript.trim()+"\n\"\"\"";
+    const j=await llmJSON(ANA_SYS,usr);
+    const list=(Array.isArray(j.themen)?j.themen:Array.isArray(j.topics)?j.topics:[])
+      .map(t=>typeof t==="string"?{titel:t,detail:""}:{titel:String(t.titel||t.title||"").trim(),detail:String(t.detail||"").trim()})
+      .filter(t=>t.titel).slice(0,10);
+    /* Erneut auswerten: noch unberührte Themen aus diesem Memo ersetzen, bearbeitete/abgehakte/eingeplante bleiben */
+    g.ideas=g.ideas.filter(i=>!(i.src&&i.src.m===m.id&&!i.done&&!i.edited&&!i.planned));
+    const have=new Set(g.ideas.map(i=>normT(i.text)));
+    const fresh=[];
+    list.forEach(t=>{ const k=normT(t.titel); if(have.has(k)) return; have.add(k);
+      fresh.push({id:uid(),text:t.titel,detail:t.detail,done:false,src:{s:s.id,m:m.id,date:s.date},createdAt:Date.now()}); });
+    g.ideas=[...fresh,...g.ideas];
+    m.summary=String(j.zusammenfassung||j.summary||"").trim(); m.ideaCount=fresh.length; m.mAnaAt=Date.now();
+    touch(g); touch(s); save();
+    return fresh.length;
+  } finally { anaBusy.delete(m.id); }
+}
+/* Alles, was in einer Stunde noch nicht ausgewertet ist: erst transkribieren (falls nötig), dann auswerten */
+const pendingMemos=g=>sessionsOf(g.id).flatMap(s=>s.memos.filter(m=>!m.mAnaAt).map(m=>({s,m})));
+async function analyzeGroup(g,onStep){
+  let added=0, fail=0, i=0; const list=pendingMemos(g);
+  for(const {s,m} of list){
+    onStep&&onStep(++i,list.length);
+    try{
+      if(!(m.transcript||"").trim()){ m.transcript=await transcribeMemo(m); m.mTransAt=Date.now(); touch(s); save(); }
+      added+=await analyzeMemo(s,m);
+    }catch(e){ fail++; console.warn(e); if(/key|401|403/i.test(e.message||"")) throw e; }
+  }
+  return {added,fail,total:list.length};
+}
 async function transcribeMemo(m){
   if(!STT.key()) { sttSheet(); throw new Error("Erst API-Key hinterlegen"); }
   const blob = await idbGet(m.id);
@@ -1412,12 +1710,13 @@ async function transcribeMemo(m){
 
 function sttSheet(){
   const p=STT.prov();
-  openSheet(`<div class="sheet-title">Transkription</div>
-    <div class="sheet-note">Wandelt Sprachmemos per KI in Text um. Der Key bleibt nur in diesem Browser.</div>
+  openSheet(`<div class="sheet-title">Transkription &amp; Auswertung</div>
+    <div class="sheet-note">Wandelt Sprachmemos per KI in Text um und zieht daraus Themen und Ideen für die Stunde. Der Key bleibt nur in diesem Browser.</div>
     <span class="flabel">Dienst</span>
     <div class="seg" id="stProv"><button data-p="groq" class="${p==="groq"?"on":""}">Groq (gratis)</button><button data-p="openai" class="${p==="openai"?"on":""}">OpenAI</button></div>
     <span class="flabel">API-Key</span><input id="stKey" class="field" type="password" autocomplete="off" placeholder="gsk_… bzw. sk-…" value="${esc(STT.key())}">
-    <label class="switchrow"><span>Nach jeder Aufnahme automatisch</span><input type="checkbox" id="stAuto" ${STT.auto()?"checked":""}></label>
+    <label class="switchrow"><span>Nach jeder Aufnahme automatisch transkribieren</span><input type="checkbox" id="stAuto" ${STT.auto()?"checked":""}></label>
+    <label class="switchrow"><span>Danach Themen erkennen und in die Stunde übernehmen</span><input type="checkbox" id="stAna" ${STT.ana()?"checked":""}></label>
     <div class="sheet-grp"><button class="sheet-btn primary" id="stSave">Speichern</button></div>
     <div class="tips"><b>Groq-Key in 2 Minuten:</b> <code>console.groq.com</code> → anmelden → API Keys → Create. Whisper large v3 versteht Deutsch auch mit Hallenlärm.</div>`);
   let prov=p;
@@ -1426,6 +1725,8 @@ function sttSheet(){
     localStorage.setItem("tb_stt_prov",prov);
     localStorage.setItem("tb_stt_key",$("#stKey",sheetPanel).value.trim());
     localStorage.setItem("tb_stt_auto",$("#stAuto",sheetPanel).checked?"1":"0");
+    localStorage.setItem("tb_ana_auto",$("#stAna",sheetPanel).checked?"1":"0");
+    if(prov!==p) localStorage.removeItem("tb_llm_model_"+prov);
     toast("Gespeichert"); closeSheet();
   });
 }
@@ -1451,8 +1752,15 @@ async function startRec(sid){
     const memo={id,label:"",createdAt:Date.now(),mime:blob.type,durMs:Date.now()-rec.t0};
     s.memos.push(memo); touch(s); save(); render(); toast("Memo gespeichert");
     if(STT.auto()&&STT.key()){
-      transcribeMemo(memo).then(txt=>{ memo.transcript=txt; memo.mTransAt=Date.now(); touch(s); save(); if(!isEditing()) render(); toast("Transkript fertig"); })
-        .catch(e=>toast("Transkription: "+(e.message||e)));
+      transcribeMemo(memo).then(async txt=>{
+        memo.transcript=txt; memo.mTransAt=Date.now(); touch(s); save();
+        if(STT.ana()&&s.groupId){
+          if(!isEditing()) render();
+          try{ const n=await analyzeMemo(s,memo); toast(n?"Transkript fertig · "+(n===1?"1 Thema":n+" Themen")+" zur Stunde":"Transkript fertig · keine neuen Themen"); }
+          catch(e){ toast("Auswertung: "+(e.message||e)); }
+        } else toast("Transkript fertig");
+        if(!isEditing()) render();
+      }).catch(e=>toast("Transkription: "+(e.message||e)));
     }
   };
   rec.mr.start();
@@ -1613,7 +1921,7 @@ function mergeSessions(a=[],b=[],tomb){
     const mem=new Map();
     for(const mm of [...(p.memos||[]),...(x.memos||[])]){
       const q=mem.get(mm.id);
-      if(!q || (mm.synced&&!q.synced) || (mm.mLabelAt||0)>(q.mLabelAt||0) || (mm.mTransAt||0)>(q.mTransAt||0)) mem.set(mm.id,mm);
+      if(!q || (mm.synced&&!q.synced) || (mm.mLabelAt||0)>(q.mLabelAt||0) || (mm.mTransAt||0)>(q.mTransAt||0) || (mm.mAnaAt||0)>(q.mAnaAt||0)) mem.set(mm.id,mm);
     }
     m.set(x.id,{...newer, memos:[...mem.values()].filter(mm=>!(tomb.memo && tombActive(tomb.memo[mm.id])))});
   }
